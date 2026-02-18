@@ -1,9 +1,24 @@
 class robot:
     def __init__(self):
+        self.x
+        self.y
         pass
 
     def __str__(self):
         pass
+
+    def setX(self,x):
+        self.x = x
+
+    def setY(self,y):
+        self.y = y   
+
+    def gettX(self):
+        return self.x
+
+    def getY(self):
+        return self.y                
+        
 
 
 
