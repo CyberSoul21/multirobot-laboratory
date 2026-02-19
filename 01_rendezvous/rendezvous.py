@@ -73,7 +73,7 @@ for r in robots:
                     alpha=0.2)
     lines[r.id] = line
 
-
+#----------------------------------------------------
 # Consensus process
 for iteration in range(iterations):
     robot = random.choice(robots)
@@ -97,6 +97,10 @@ for iteration in range(iterations):
 
     fig.canvas.draw_idle()
     plt.pause(0.05)
+#----------------------------------------------------
+
+
+
 
 # Freeze last plot
 print("-----End-----")
