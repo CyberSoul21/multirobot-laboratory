@@ -39,7 +39,27 @@ class robot:
             self.neighbors.remove(node)
         else:
             print(f"Element {node} not found in the list.")
-                   
+
+
+
+    def gossip_update(self):
+        # Aux variables to accumulate new x and y positions
+        sum_x = 0
+        sum_y = 0
+        
+        # Iterate through all neighbors and accumulate their positions
+        for neighbor in self.neighbors:
+            sum_x += neighbor.x
+            sum_y += neighbor.y
+        
+        # Calculate the average position from all neighbors
+        avg_x = sum_x / len(self.neighbors)
+        avg_y = sum_y / len(self.neighbors)
+        
+        # Update the robot's position based on the average
+        self.x = avg_x
+        self.y = avg_y            
+                    
 
 #TODO: Test class,  add comments, and methods to plot..or create another class to plot?
 # Test class if this script is executed directly
