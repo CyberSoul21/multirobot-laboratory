@@ -5,6 +5,13 @@ import random
 # Number of robots
 N = 6
 
+#TODO: ask or set a point to converge
+#TODO: Implement Tlocal
+#TODO: check request and update of gossip_update.
+#TODO: plot: implemente queue_position_plot, see the document
+#TODO: Ask about this requirement: "...in which the robot will
+#randomly select a neighbor, will request a gossip update, and will update its state."
+
 #TODO: Create two topologies to test
 # Adjacency List for a Ring Topology (Cyclic Communication Graph)
 # Robot ID: [List of Neighbor IDs]
