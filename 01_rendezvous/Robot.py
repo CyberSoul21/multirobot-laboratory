@@ -41,7 +41,7 @@ class Robot:
             print(f"Element {node} not found in the list.")
 
 
-
+    #TODO: Add constraint 1 meter of distance
     def gossip_update(self):
         # Aux variables to accumulate new x and y positions
         sum_x = 0
