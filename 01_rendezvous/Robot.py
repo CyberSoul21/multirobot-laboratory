@@ -1,4 +1,4 @@
-class robot:
+class Robot:
     def __init__(self,_id,posx=0,posy=0,n=None):
 
         if n is None:
