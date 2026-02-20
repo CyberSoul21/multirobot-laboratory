@@ -14,14 +14,11 @@ class Robot:
         self.bx = bx
         self.by = by
         self.t_local = random.choice([0.3, 0.6, 0.9, 1.2, 1.5])
-        # self.t_local = random.choice([1, 1.25, 1.5, 1.75, 2])
         # Manage concurency
         self.lock = threading.RLock() # Allows the same thread to reenter in the lock
-        self.available = True
-        self.condition = threading.Condition(self.lock)
 
     def __str__(self):
-        return f"Robot {self.id} -> ({self.x:.2f}, {self.y:.2f})"
+        return f"Robot {self.id} -> ({self.x:.2f}, {self.y:.2f}), update time: {self.t_local}"
 
     def set_pos(self,x,y):
         with self.lock:

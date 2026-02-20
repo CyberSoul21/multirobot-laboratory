@@ -16,15 +16,14 @@ def robot_thread(robot, t_total):
         if actual_time - last_call > robot.t_local:
             last_call = actual_time
             robot.gossip_step()
-            # time.sleep(0)
 
 
 if __name__ == "__main__":
     # Initial params
     Num_robots = 6
     t_total = 15
-    bx = 1
-    by = 1
+    bx = 0
+    by = 0
 
     # Graph setup
     communication_graph = np.array([[5, 1], [0, 2], [1, 3], [2, 4],
