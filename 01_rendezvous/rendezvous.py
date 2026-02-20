@@ -91,7 +91,7 @@ if __name__ == "__main__":
     for t in threads:
         t.join()
 
-    print("-----End-----")
+    print("-----End consensus-----")
     for robot in robots:
         print(robot)
 
@@ -140,5 +140,6 @@ if __name__ == "__main__":
         fig.canvas.draw_idle()
         plt.pause(T_plot)
 
+    print("-----End plot-----")
     plt.ioff()
     plt.show()
