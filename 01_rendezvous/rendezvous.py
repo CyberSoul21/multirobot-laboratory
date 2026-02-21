@@ -22,19 +22,22 @@ if __name__ == "__main__":
     # Initial params
     Num_robots = 6
     t_total = 15
-    bx = 0
-    by = 0
+    bx = 1
+    by = 0.5
 
+    print("-----Ini-----")
     # Graph setup
-    communication_graph = np.array([[5, 1], [0, 2], [1, 3], [2, 4],
-                                    [3, 5], [4, 0], [1, 4], [5, 0]])
-                                    # [3, 5], [4, 0]]) # 2 disconnected graphs 
-    # undirected = True
-    # alpha = 0.125
-    # my_graph = graph(Num_robots, communication_graph, undirected)
-    # my_graph.define_W_matrix(alpha)
-    # my_graph.eigenvals()
-    # my_graph.plot_graph()
+    # communication_graph = np.array([[5, 1], [0, 2], [1, 3], [2, 4],
+    #                                 [3, 5], [4, 0], [1, 4], [5, 0]])
+    #                                 # [3, 5], [4, 0]]) # 2 disconnected graphs 
+    communication_graph = np.array([[0, 1],[1, 2], [2, 3], [3, 4], [4, 5],[5, 0]])
+
+    undirected = True
+    alpha = 0.125
+    my_graph = graph(Num_robots, communication_graph, undirected)
+    my_graph.define_W_matrix(alpha)
+    my_graph.eigenvals()
+    my_graph.plot_graph()
 
     # Robot declaration and neighbours setup
     robots = []
@@ -141,4 +144,38 @@ if __name__ == "__main__":
 
     print("-----End plot-----")
     plt.ioff()
+    plt.show()
+
+    
+    num_iter = len(next(iter(history.values())))
+    v_x = np.arange(num_iter)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+    ax1.set_title("Evolution of the x-coordinates")
+    ax1.set_ylabel("x-coordinate")
+
+    ax2.set_title("Evolution of the y-coordinates")
+    ax2.set_xlabel("Iterations")
+    ax2.set_ylabel("y-coordinate")
+
+    for r in robots:
+        traj = history[r.id]
+
+        xk = [p[0] for p in traj]
+        yk = [p[1] for p in traj]
+
+        for ax, data in zip((ax1, ax2), (xk, yk)):
+
+            line, = ax.plot(v_x, data, marker='.')
+            c = line.get_color()
+            ax.plot(v_x[0],  data[0],  marker='x', color=c)
+            ax.plot(v_x[-1], data[-1], marker='o', color=c)
+
+        ax1.text(v_x[0], xk[0], f'{r.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[0], yk[0], f'{r.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax1.text(v_x[-1], xk[-1], f'{r.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[-1], yk[-1], f'{r.id}', fontsize=8, ha='right', va='bottom', color=c)
+
+    plt.tight_layout()
     plt.show()
