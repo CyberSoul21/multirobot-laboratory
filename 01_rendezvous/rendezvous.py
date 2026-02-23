@@ -1,3 +1,8 @@
+#-----------------------------------
+# Javier Almario, NIP: 962449
+# Alvaro Provencio, NIP: 960625
+#-----------------------------------
+
 from Robot import Robot as rbt
 from graph import graph
 import matplotlib.pyplot as plt
