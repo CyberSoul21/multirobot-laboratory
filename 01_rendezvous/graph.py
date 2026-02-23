@@ -1,4 +1,8 @@
-import numpy as np  # Make numpy available using np.
+#-----------------------------------
+# Javier Almario, NIP: 962449
+# Alvaro Provencio, NIP: 960625
+#-----------------------------------
+import numpy as np  
 from matplotlib import pyplot as plt
 
 class graph:
