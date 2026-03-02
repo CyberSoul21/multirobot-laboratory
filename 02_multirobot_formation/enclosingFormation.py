@@ -29,11 +29,16 @@ def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
 
 Num_robots = 4; # number of bots #square
+#number iteration
+t = 100
+Kc = 1
+# Time step
+dt = 0.1
 
 
 robots = []
-q = np.zeros((2,Num_robots)) #Create matrix
-c = np.zeros((2,Num_robots)) #Create matrix
+Q = np.zeros((2,Num_robots)) #Create matrix
+C = np.zeros((2,Num_robots)) #Create matrix
 target = np.array([[random.randint(0,10)],[random.randint(0,10)]])
 d = 1
 
@@ -41,84 +46,69 @@ for i in range(Num_robots):
     # Random initial positions
     x = random.randint(0, 10)
     y = random.randint(0, 10)
-    q[0,i] = x
-    q[1,i] = y
+    Q[0,i] = x
+    Q[1,i] = y
     robots.append(Robot(i, x, y))
 
     #c[0,i] =  random.randint(0, 10) 
 
 #Desired formastion, TODO: create a class called shape
 # Square (4 points), rotated 45° so sides are axis-aligned
-c = points_around(target, n=Num_robots, radius=1.0, rotation=45) 
+C = points_around(target, n=Num_robots, radius=1.0, rotation=45) 
 
 
 
+for i in range(t):
 
-A = np.dot(c.transpose(),q)
-#A = q @ c.T
+    A = np.dot(C.T,Q)
+    #A = q @ c.T
+    #U,S,Vt = np.linalg.svd(A,full_matrices=True)
+    U,S,Vt = np.linalg.svd(A)
+    V = Vt.T
+    VUt = np.dot(V,U.T)
+    #VtU = V @ U.T
+    d = np.sign(np.linalg.det(VUt))
+    # Build D matrix
+    D = np.eye(Num_robots)
+    D[-1, -1] = d
+    # Compute R
+    R = V @ D @ U.T
+    #R = np.dot(V,D,U.T)
+    print("U: ")
+    print(U)
 
-
-
-
-#U,S,Vt = np.linalg.svd(A,full_matrices=True)
-U,S,Vt = np.linalg.svd(A,full_matrices=True)
-
-
-
-
-V = Vt.T
-
-VUt = np.dot(V,U.transpose())
-#VtU = V @ U.T
-
-d = np.sign(np.linalg.det(VUt))
-
-
-
-# Build D matrix
-D = np.eye(Num_robots)
-D[-1, -1] = d
-
-# Compute R
-R = V @ D @ U.T
+    print("V: ")
+    print(V)
 
 
-"""
-print("Q: ")
-print(q)
-
-print("target: ")
-print(target)
-
-print("C: ")
-print(c)
-print("A: ")
-print(A)
-
-print("U: ")
-print(U)
-
-print("S: ")
-print(S)
-
-print("Vt: ")
-print(Vt)
-
-print("V: ")
-print(V)
-
-print("d: ")
-print(d)  
-
-print("D: ")
-print(D)  
-
-print("R: ")
-print(D)  
-"""
+    print("R: ")
+    print(R)
+    print("C: ")
+    print(C)    
+    print("Q: ")
+    print(Q)    
 
 
+    #RC = np.dot(R,C.T)
+    RC = np.dot(C,R)
+    print("RC: ")
+    print(RC)  
+
+    Q_RC = Q-RC
+    print("Q_RC: ")
+    print(Q_RC) 
+
+    dq = -Kc*Q_RC
 
 
+    #dq = Kc * (Q - np.dot(R,C))
+    Q = Q + dq * dt
+    # Print the updated positions (optional)
+    print(f"Updated positions at time step {t}: {Q}")
+
+    print("Q: ")
+    print(Q) 
+
+    #input()
 
 
