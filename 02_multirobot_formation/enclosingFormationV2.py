@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-
+#Polygon
 def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
     cx = center[0,0]
@@ -27,7 +27,7 @@ target = np.array([[random.randint(0,10)],[random.randint(0,10)]]) #np.array([[5
 # Initial positions Q (2 x N)
 Q = np.random.rand(2, Num_robots) * 10 
 # Reference formation C (2 x N) centered at zero for rotation math
-C = points_around(np.array([[0],[0]]), n=Num_robots, radius=2.0, rotation=45)
+C = points_around(np.array([[0],[0]]), n=Num_robots, radius=1.0, rotation=45)
 
 trajectories = np.zeros((t_steps+1, 2, Num_robots))
 
@@ -95,5 +95,12 @@ for i in range(Num_robots):
 plt.scatter(Q[0], Q[1], c='blue', marker='x', label="Final Position")
 plt.legend()
 plt.axis('equal')
+
+# Add labels and title
+plt.xlabel("X position")
+plt.ylabel("Y position")
+plt.title("Robot Movement: Initial, Desired, and Final Positions with Trajectories")
+plt.legend()
 plt.grid(True)
+
 plt.show()
