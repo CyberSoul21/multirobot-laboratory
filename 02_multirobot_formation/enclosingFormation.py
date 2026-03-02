@@ -49,8 +49,41 @@ for i in range(Num_robots):
 
 #Desired formastion, TODO: create a class called shape
 # Square (4 points), rotated 45° so sides are axis-aligned
-c = points_around(target, n=4, radius=1.0, rotation=45) 
+c = points_around(target, n=Num_robots, radius=1.0, rotation=45) 
 
+
+
+
+A = np.dot(c.transpose(),q)
+#A = q @ c.T
+
+
+
+
+#U,S,Vt = np.linalg.svd(A,full_matrices=True)
+U,S,Vt = np.linalg.svd(A,full_matrices=True)
+
+
+
+
+V = Vt.T
+
+VUt = np.dot(V,U.transpose())
+#VtU = V @ U.T
+
+d = np.sign(np.linalg.det(VUt))
+
+
+
+# Build D matrix
+D = np.eye(Num_robots)
+D[-1, -1] = d
+
+# Compute R
+R = V @ D @ U.T
+
+
+"""
 print("Q: ")
 print(q)
 
@@ -59,6 +92,33 @@ print(target)
 
 print("C: ")
 print(c)
-         
+print("A: ")
+print(A)
+
+print("U: ")
+print(U)
+
+print("S: ")
+print(S)
+
+print("Vt: ")
+print(Vt)
+
+print("V: ")
+print(V)
+
+print("d: ")
+print(d)  
+
+print("D: ")
+print(D)  
+
+print("R: ")
+print(D)  
+"""
+
+
+
+
 
 
