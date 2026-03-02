@@ -44,6 +44,7 @@ for k in range(t_steps):
 
 
     # --- KABSCH ALGORITHM STEP ------------------
+    #https://zpl.fi/aligning-point-patterns-with-kabsch-umeyama-algorithm/
     # Centering (Crucial for SVD rotation)
     #Centering: The Kabsch algorithm finds the rotation between two sets of points. 
     # For this to work, we must subtract the centroid (mean) from both Q and C before computing the SVD.
