@@ -1,13 +1,7 @@
 import numpy as np
 import random
 import math
-
-class Robot:
-    def __init__(self, _id, x=0, y=0):
-        self.id = _id  # Robot's unique identifier
-        self.x = x      # Position in x-axis
-        self.y = y      # Position in y-axis
-
+import matplotlib.pyplot as plt
 
 
 
@@ -28,10 +22,10 @@ def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
 
 
-Num_robots = 4; # number of bots #square
+Num_robots = 10; # number of bots #square
 #number iteration
-t = 100
-Kc = 1
+t = 1000
+Kc = 10
 # Time step
 dt = 0.1
 
@@ -48,7 +42,7 @@ for i in range(Num_robots):
     y = random.randint(0, 10)
     Q[0,i] = x
     Q[1,i] = y
-    robots.append(Robot(i, x, y))
+    #robots.append(Robot(i, x, y))
 
     #c[0,i] =  random.randint(0, 10) 
 
@@ -57,19 +51,26 @@ for i in range(Num_robots):
 C = points_around(target, n=Num_robots, radius=1.0, rotation=45) 
 
 
+# Prepare to track the trajectories
+trajectories = np.zeros((t, 2, Num_robots))  # For storing robot positions at each time step
+print(trajectories)
+#input()
+
+
+# Plot initial positions (Q) - blue points
+plt.figure(figsize=(8, 6))
+plt.plot(Q[0], Q[1], 'go', label="Final positions")
 
 for i in range(t):
 
-    A = np.dot(C.T,Q)
-    #A = q @ c.T
+    A = C @ Q.T
     #U,S,Vt = np.linalg.svd(A,full_matrices=True)
     U,S,Vt = np.linalg.svd(A)
     V = Vt.T
-    VUt = np.dot(V,U.T)
-    #VtU = V @ U.T
+    VUt = V @ U.T
     d = np.sign(np.linalg.det(VUt))
     # Build D matrix
-    D = np.eye(Num_robots)
+    D = np.eye(2)
     D[-1, -1] = d
     # Compute R
     R = V @ D @ U.T
@@ -89,16 +90,15 @@ for i in range(t):
     print(Q)    
 
 
-    #RC = np.dot(R,C.T)
-    RC = np.dot(C,R)
+    RC = R @ C
     print("RC: ")
     print(RC)  
 
-    Q_RC = Q-RC
+    Q_RC =target + (Q-RC)
     print("Q_RC: ")
     print(Q_RC) 
 
-    dq = -Kc*Q_RC
+    dq = Kc*(Q_RC-Q)
 
 
     #dq = Kc * (Q - np.dot(R,C))
@@ -110,5 +110,32 @@ for i in range(t):
     print(Q) 
 
     #input()
+    # Store the updated positions for plotting the trajectories
+    trajectories[i] = Q  # Transpose Q to store robot positions at this time step
 
 
+
+
+# Plot the results
+
+
+
+# Plot desired positions (C) - red points
+plt.plot(C[0], C[1], 'ro', label="Desired positions (C)")
+
+# Plot initial positions (Q) - blue points
+plt.plot(Q[0], Q[1], 'bx', label="Initial positions (Q)")
+
+# Plot trajectories of robots (paths taken)
+#for i in range(Num_robots):
+#    plt.plot(trajectories[:, 0, i], trajectories[:, 1, i], 'g--', alpha=0.7)
+
+# Add labels and title
+plt.xlabel("X position")
+plt.ylabel("Y position")
+plt.title("Robot Movement: Initial, Desired, and Final Positions with Trajectories")
+plt.legend()
+plt.grid(True)
+
+# Show the plot
+plt.show()
