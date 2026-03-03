@@ -18,9 +18,9 @@ def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
     return c_around
 
-Num_robots = 10
-t_steps = 200 #for testing
-Kc = 5
+Num_robots = 50
+t_steps = 1000 #for testing
+Kc = 10
 dt = 0.05
 target = np.array([[random.randint(0,10)],[random.randint(0,10)]]) #np.array([[5.0], [5.0]])
 
@@ -75,16 +75,25 @@ for k in range(t_steps):
     # Compute Rotation Matrix
     R = V @ D @ U.T
     
+    """
     # CONTROL LAW STEP 
-    # q_Ni = target + R @ C_i
-    Q_target = target + (R @ C)
+    q_Ni = target + R @ C
+    #Q_target = target + (R @ C)
     
     # Error vector 
-    error = Q_target - Q
+    error = q_Ni - Q
     
     # Update positions
     dq = Kc * error
+    """
+    
+    dq = -Kc*(Q - (target + R @ C))
+    
+    
     Q = Q + dq * dt
+
+
+
     
     trajectories[k+1] = Q
 
