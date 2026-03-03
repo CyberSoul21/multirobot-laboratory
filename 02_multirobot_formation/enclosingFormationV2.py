@@ -18,99 +18,70 @@ def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
     return c_around
 
-Num_robots = 50
-t_steps = 1000 #for testing
-Kc = 10
+Num_robots = 10
+N = Num_robots + 1 # Robot + target
+t_steps = 1000 # for testing
+Kc = 1
 dt = 0.05
-target = np.array([[random.randint(0,10)],[random.randint(0,10)]]) #np.array([[5.0], [5.0]])
+target = np.array([[random.randint(0,10)],[random.randint(0,10)]])
 
 # Initial positions Q (2 x N)
-Q = np.random.rand(2, Num_robots) * 10 
+q_robots = np.random.rand(2, Num_robots) * 10 
+q = np.hstack((q_robots,target))
+
 # Reference formation C (2 x N) centered at zero for rotation math
-C = points_around(np.array([[0],[0]]), n=Num_robots, radius=1.0, rotation=45)
+c_robots = points_around(np.array([[0],[0]]), n=Num_robots, radius=1.0, rotation=45)
+c = np.hstack((c_robots,np.array([[0],[0]])))
 
-trajectories = np.zeros((t_steps+1, 2, Num_robots))
+# Compute Q and C with N+N columns
+Q = np.zeros((2,N*N))
+C = np.zeros((2,N*N))
+idx = 0
+for i in range(N):
+    for j in range(N):
+        Q[:,idx] = q[:,i]-q[:,j]
+        C[:,idx] = c[:,i]-c[:,j]
+        idx += 1
 
+# Compute Rotation Matrix
+A = C @ Q.T
+U, S, Vt = np.linalg.svd(A)
+V = Vt.T
+d = np.linalg.det(V @ U.T)
+D = np.eye(2) # R must be 2x2 for 2d robotics
+D[1, 1] = np.sign(d)
+R = V @ D @ U.T
+
+# Compute enclosing
+trajectories = np.zeros((t_steps,2,Num_robots))
+target_idx = N - 1
+for k in range(t_steps):
+    for i in range(Num_robots):
+        trajectories[k, :, i] = q[:, i]
+        q_Ni = q[:, target_idx] - q[:, i]
+        c_Ni = c[:, target_idx] - c[:, i]
+        dq_i = Kc * (q_Ni - R @ c_Ni)
+        q[:, i] += dq_i * dt
+        
 
 # --- PLOTTING ---
 plt.figure(figsize=(8, 8))
-# Plot initial positions (Q) - blue points
-plt.plot(Q[0], Q[1], 'go', label="Initial positions")
+plt.scatter(q_robots[0], q_robots[1], color='green', label="Initial positions", alpha=0.5)
+plt.plot(target[0], target[1], 'rx', markersize=12, markeredgewidth=3, label="Target")
 
-trajectories[0] = Q
-
-
-for k in range(t_steps):
-
-
-    # --- KABSCH ALGORITHM STEP ------------------
-    #https://zpl.fi/aligning-point-patterns-with-kabsch-umeyama-algorithm/
-    # Centering (Crucial for SVD rotation)
-    #Centering: The Kabsch algorithm finds the rotation between two sets of points. 
-    # For this to work, we must subtract the centroid (mean) from both Q and C before computing the SVD.
-    centroid_Q = np.mean(Q, axis=1, keepdims=True)
-    centroid_C = np.mean(C, axis=1, keepdims=True)
-    
-    Q_centered = Q - centroid_Q
-    C_centered = C - centroid_C
-    #-----------------------------------------------
-
-
-    print("Q_centered: ")
-    print(Q_centered)
-
-    print("C_centered: ")
-    print(C_centered)
-
-    A = C_centered @ Q_centered.T
-    
-    U, S, Vt = np.linalg.svd(A)
-    V = Vt.T
-    
-    d = np.linalg.det(V @ U.T)
-    # R must be 2x2 for 2d robotics
-    D = np.eye(2)
-    D[1, 1] = np.sign(d)
-    
-    # Compute Rotation Matrix
-    R = V @ D @ U.T
-    
-    """
-    # CONTROL LAW STEP 
-    q_Ni = target + R @ C
-    #Q_target = target + (R @ C)
-    
-    # Error vector 
-    error = q_Ni - Q
-    
-    # Update positions
-    dq = Kc * error
-    """
-    
-    dq = -Kc*(Q - (target + R @ C))
-    
-    
-    Q = Q + dq * dt
-
-
-
-    
-    trajectories[k+1] = Q
-
-
-
-plt.plot(C[0,:] + target[0], C[1,:] + target[1], 'ro', label="Target Formation", alpha=0.3)
+# Trajectories
 for i in range(Num_robots):
-    plt.plot(trajectories[:, 0, i], trajectories[:, 1, i], 'g-', alpha=0.4)
-plt.scatter(Q[0], Q[1], c='blue', marker='x', label="Final Position")
-plt.legend()
-plt.axis('equal')
+    plt.plot(trajectories[:, 0, i], trajectories[:, 1, i], 'g-', alpha=0.3)
 
-# Add labels and title
+
+plt.scatter(q[0, :Num_robots], q[1, :Num_robots], c='blue', marker='o', label="Final Position")
+c_rotated = R @ c_robots + target
+plt.scatter(c_rotated[0], c_rotated[1], facecolors='none', edgecolors='r', s=100, label="Desired position")
+
+plt.axis('equal')
 plt.xlabel("X position")
 plt.ylabel("Y position")
-plt.title("Robot Movement: Initial, Desired, and Final Positions with Trajectories")
+plt.title("Enclosing")
 plt.legend()
 plt.grid(True)
-
 plt.show()
