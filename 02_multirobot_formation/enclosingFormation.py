@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-
+#Polygon
 def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
     cx = center[0,0]
@@ -18,124 +18,70 @@ def points_around(center, n: int, radius: float = 1.0, rotation: float = 0.0):
 
     return c_around
 
-
-
-
-
-Num_robots = 10; # number of bots #square
-#number iteration
-t = 1000
-Kc = 10
-# Time step
-dt = 0.1
-
-
-robots = []
-Q = np.zeros((2,Num_robots)) #Create matrix
-C = np.zeros((2,Num_robots)) #Create matrix
+Num_robots = 10
+N = Num_robots + 1 # Robot + target
+t_steps = 1000 # for testing
+Kc = 1
+dt = 0.05
 target = np.array([[random.randint(0,10)],[random.randint(0,10)]])
-d = 1
 
+# Initial positions Q (2 x N)
+q_robots = np.random.rand(2, Num_robots) * 10 
+q = np.hstack((q_robots,target))
+
+# Reference formation C (2 x N) centered at zero for rotation math
+c_robots = points_around(np.array([[0],[0]]), n=Num_robots, radius=1.0, rotation=45)
+c = np.hstack((c_robots,np.array([[0],[0]])))
+
+# Compute Q and C with N+N columns
+Q = np.zeros((2,N*N))
+C = np.zeros((2,N*N))
+idx = 0
+for i in range(N):
+    for j in range(N):
+        Q[:,idx] = q[:,i]-q[:,j]
+        C[:,idx] = c[:,i]-c[:,j]
+        idx += 1
+
+# Compute Rotation Matrix
+A = C @ Q.T
+U, S, Vt = np.linalg.svd(A)
+V = Vt.T
+d = np.linalg.det(V @ U.T)
+D = np.eye(2) # R must be 2x2 for 2d robotics
+D[1, 1] = np.sign(d)
+R = V @ D @ U.T
+
+# Compute enclosing
+trajectories = np.zeros((t_steps,2,Num_robots))
+target_idx = N - 1
+for k in range(t_steps):
+    for i in range(Num_robots):
+        trajectories[k, :, i] = q[:, i]
+        q_Ni = q[:, target_idx] - q[:, i]
+        c_Ni = c[:, target_idx] - c[:, i]
+        dq_i = Kc * (q_Ni - R @ c_Ni)
+        q[:, i] += dq_i * dt
+        
+
+# --- PLOTTING ---
+plt.figure(figsize=(8, 8))
+plt.scatter(q_robots[0], q_robots[1], color='green', label="Initial positions", alpha=0.5)
+plt.plot(target[0], target[1], 'rx', markersize=12, markeredgewidth=3, label="Target")
+
+# Trajectories
 for i in range(Num_robots):
-    # Random initial positions
-    x = random.randint(0, 10)
-    y = random.randint(0, 10)
-    Q[0,i] = x
-    Q[1,i] = y
-    #robots.append(Robot(i, x, y))
-
-    #c[0,i] =  random.randint(0, 10) 
-
-#Desired formastion, TODO: create a class called shape
-# Square (4 points), rotated 45° so sides are axis-aligned
-C = points_around(target, n=Num_robots, radius=1.0, rotation=45) 
+    plt.plot(trajectories[:, 0, i], trajectories[:, 1, i], 'g-', alpha=0.3)
 
 
-# Prepare to track the trajectories
-trajectories = np.zeros((t, 2, Num_robots))  # For storing robot positions at each time step
-print(trajectories)
-#input()
+plt.scatter(q[0, :Num_robots], q[1, :Num_robots], c='blue', marker='o', label="Final Position")
+c_rotated = R @ c_robots + target
+plt.scatter(c_rotated[0], c_rotated[1], facecolors='none', edgecolors='r', s=100, label="Desired position")
 
-
-# Plot initial positions (Q) - blue points
-plt.figure(figsize=(8, 6))
-plt.plot(Q[0], Q[1], 'go', label="Final positions")
-
-for i in range(t):
-
-    A = C @ Q.T
-    #U,S,Vt = np.linalg.svd(A,full_matrices=True)
-    U,S,Vt = np.linalg.svd(A)
-    V = Vt.T
-    VUt = V @ U.T
-    d = np.sign(np.linalg.det(VUt))
-    # Build D matrix
-    D = np.eye(2)
-    D[-1, -1] = d
-    # Compute R
-    R = V @ D @ U.T
-    #R = np.dot(V,D,U.T)
-    print("U: ")
-    print(U)
-
-    print("V: ")
-    print(V)
-
-
-    print("R: ")
-    print(R)
-    print("C: ")
-    print(C)    
-    print("Q: ")
-    print(Q)    
-
-
-    RC = R @ C
-    print("RC: ")
-    print(RC)  
-
-    Q_RC =target + (Q-RC)
-    print("Q_RC: ")
-    print(Q_RC) 
-
-    dq = Kc*(Q_RC-Q)
-
-
-    #dq = Kc * (Q - np.dot(R,C))
-    Q = Q + dq * dt
-    # Print the updated positions (optional)
-    print(f"Updated positions at time step {t}: {Q}")
-
-    print("Q: ")
-    print(Q) 
-
-    #input()
-    # Store the updated positions for plotting the trajectories
-    trajectories[i] = Q  # Transpose Q to store robot positions at this time step
-
-
-
-
-# Plot the results
-
-
-
-# Plot desired positions (C) - red points
-plt.plot(C[0], C[1], 'ro', label="Desired positions (C)")
-
-# Plot initial positions (Q) - blue points
-plt.plot(Q[0], Q[1], 'bx', label="Initial positions (Q)")
-
-# Plot trajectories of robots (paths taken)
-#for i in range(Num_robots):
-#    plt.plot(trajectories[:, 0, i], trajectories[:, 1, i], 'g--', alpha=0.7)
-
-# Add labels and title
+plt.axis('equal')
 plt.xlabel("X position")
 plt.ylabel("Y position")
-plt.title("Robot Movement: Initial, Desired, and Final Positions with Trajectories")
+plt.title("Enclosing")
 plt.legend()
 plt.grid(True)
-
-# Show the plot
 plt.show()
