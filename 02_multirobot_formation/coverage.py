@@ -1,157 +1,177 @@
 import numpy as np
-import random
-import math
+
 from matplotlib import pyplot as plt
-from matplotlib import cm
+from matplotlib.animation import FuncAnimation
 
-A = -0.5              # A < 0
-B = 1.0
-K = 1 # 3.2
-T = 0.5               # sample time
-total_t = 100
-alpha = 0  # agents
-
-# Domain
-x_min, x_max = -5, 5
-Nx = 200
-x = np.linspace(x_min, x_max, Nx)
-dx = x[1] - x[0]
+# Parameters
+A = -0.25           # A < 0
+B = 1.0             # B > 0
+T = 0.25            # sample time
+total_t = 100       # Total time
+F = np.exp(A * T)
+G = (B/A) * (np.exp(A*T) - 1)
 
 # Time
 N_ITER = int(total_t / T)
 time = np.arange(N_ITER+1) * T
 
-#3.4 more agents
-n_agents = 5
-p = np.linspace(-3, 3, n_agents) # Initial position
-sigma = 0.8                      # Influence radius
-Kv = 0.5                         # Velocity
+# Domain
+x_min, x_max = -10, 10
+y_min, y_max = -10, 10
+Nx, Ny = 100, 100
+x = np.linspace(x_min, x_max, Nx)
+y = np.linspace(y_min, y_max, Ny)
+X, Y = np.meshgrid(x, y) 
+dA = (x[1] - x[0]) * (y[1] - y[0]) 
 
-# Coverage
-Lambda = np.zeros((N_ITER+1, Nx))
-# Lambda[0, :] = 200   # initial spatial condition 3.1
-Lambda[0, :] = 0   # 3.3
-F = np.exp(A * T)
-G = (B/A) * (np.exp(A*T) - 1)
 
-# 3.2
-# Lambda_star = 50 * np.ones(Nx)  # 3.2 
-Lambda_star = 80 * np.exp(-x**2 / 4) # 3.3
-alpha_hist = np.zeros((N_ITER, Nx))
-
-# 3.4
-p_history = np.zeros((N_ITER+1, n_agents))
-p_history[0, :] = p
+#--------------------- 3.1 Environment ---------------------#
+alpha = 0           # agents
+Lambda = np.zeros((N_ITER+1, Nx, Ny))
+Lambda_star = 2 * np.ones((Nx, Ny))
+Lambda[0, :, :] = 2   # initial spatial condition
 
 for k in range(N_ITER):
-    #3.4 Agent contribution
-    alpha_k = np.zeros(Nx)
-    for i in range(n_agents):
-        kernel = np.exp(-(x - p[i])**2 / (2 * sigma**2))
-        alpha_k += kernel
-    Lambda[k+1, :] = F * Lambda[k, :] + G * alpha_k
-    
-    error_k = Lambda_star - Lambda[k+1, :]
-    for i in range(n_agents):
-        # Move to the position with more error
-        phi_i = np.exp(-(x - p[i])**2 / (2 * sigma**2))
-        d_phi = phi_i * (x - p[i]) / (sigma**2)
-        # dp = Kv * np.sum(error_k * d_phi) * dx
-        dp = (Kv/Nx) * np.sum(error_k * d_phi) * dx
-        p[i] += dp
-        p[i] = np.clip(p[i], x_min, x_max)
-        
-    p_history[k+1, :] = p
-    # end 3.4
+    Lambda[k+1, : ,:] = F * Lambda[k, :, :] + G * alpha
 
-    # # 3.2
-    # error_k = Lambda_star - Lambda[k, :]
-    # alpha = K * error_k
-    # alpha_hist[k, :] = alpha
+error = np.sum((Lambda_star - Lambda)**2, axis=(1, 2)) * dA
 
-    # # 3.1
-    # Lambda[k+1, :] = F * Lambda[k, :] + G * alpha 
-
-# #3.1
-# # Spatial evolution
-# plt.figure()
-# # for k in range(0, N_ITER+1, 5):
-# #     plt.plot(x, Lambda[k, :], label=f't={time[k]:.1f}')
-# plt.plot(time, Lambda)
-# plt.title("Coverage in domain")
-# plt.xlabel("time")
-# plt.ylabel("Lambda(x,t)")
-# plt.legend()
-# plt.show()
-
-# 3.2
-# 1. Evolución Temporal de la Cobertura
-plt.figure(figsize=(10, 5))
-plt.plot(time, Lambda[:, ::40]) # Graficamos solo algunos puntos espaciales para no saturar
-plt.title("Evolución de la Cobertura con Control (3.2)")
-plt.xlabel("Tiempo")
-plt.ylabel("$\Lambda(x,t)$")
-plt.legend(["Punto x1", "Punto x2", "Punto x3", "Punto x4", "Punto x5", "Objetivo"])
-plt.grid(True)
+# Coverage decay over time for a point
+plt.figure()
+plt.plot(time, Lambda[:, 0,0]) #plot some points
+plt.title("3.1 Coverage decay over time for a point")
+plt.xlabel("time")
+plt.ylabel("Lambda(x,t)")
 plt.show()
 
 # Cuadratic coverage error
-# error = np.sum(Lambda**2, axis=1) * dx # 3.1
-error = np.sum((Lambda - Lambda_star)**2, axis=1) * dx # 3.2
-
 plt.figure()
 plt.plot(time, error)
-plt.title("Cuadratic coverage error")
+plt.title("3.1 Cuadratic coverage error of the domain")
 plt.xlabel("time")
 plt.ylabel("E(t)")
 plt.show()
 
 
-# 3.3
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 7))
-X, Y = np.meshgrid(x, time)
-surf = ax.plot_surface(X, Y, Lambda, cmap=cm.viridis, linewidth=0, antialiased=False)
+#--------------------- 3.2 A first agent ---------------------#
+n_agents = 1
+K = 1     #coverture intensity
+R = 0.8   # Influence radius
+p = np.array([0.0, 0.0])
 
-ax.set_title("Evolución de Cobertura Espacial (3.3)")
-ax.set_xlabel("Espacio (x)")
-ax.set_ylabel("Tiempo (t)")
-ax.set_zlabel("$\Lambda(x,t)$")
-fig.colorbar(surf, shrink=0.5, aspect=5)
+Lambda = np.zeros((N_ITER+1, Nx, Ny))
+Lambda_star = 2 * K * np.ones((Nx, Ny))
+
+for k in range(N_ITER):
+    sigma = np.exp(-((X - p[0])**2 + (Y - p[1])**2) / (2 * R**2))
+    alpha = K * sigma
+    Lambda[k+1, :] = F * Lambda[k, :] + G * alpha
+
+error = np.sum((Lambda_star - Lambda)**2, axis=(1, 2)) * dA
+
+# Final status of the grid
+plt.pcolormesh(X, Y, Lambda[-1, :, :], cmap='viridis', shading='auto')
+plt.colorbar(label="Lambda(x,y)")
+plt.title(f"3.2 Coverture (t={total_t})")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 
-# --- Comparación Final ---
-plt.figure(figsize=(10, 5))
-plt.plot(x, Lambda_star, 'r--', label="Objetivo $\Lambda^*(x)$")
-plt.plot(x, Lambda[-1, :], 'b', label="Estado Final $t=20$")
-plt.fill_between(x, Lambda[-1, :], color='blue', alpha=0.2)
-plt.title("Perfil de Cobertura Final vs Objetivo")
-plt.xlabel("Espacio (x)")
-plt.ylabel("Cobertura")
+# Evolution of Lambda at certain points
+plt.figure()
+plt.plot(time, Lambda[:, Ny//2, Nx//2], label="Center (under the agent)")
+plt.plot(time, Lambda[:, (Ny//2 + 5), (Nx//2 + 5)], label="close to the agent")
+plt.plot(time, Lambda[:, 0, 0], label="Corner (far from the agent)")
+plt.title("3.2 Evolution of Lambda at certain points")
+plt.xlabel("Time")
+plt.ylabel("Lambda(x,y)")
 plt.legend()
-plt.grid(True)
+plt.show()
+
+# Cuadratic coverage error
+plt.figure()
+plt.plot(time, error)
+plt.title("3.2 Cuadratic coverage error")
+plt.xlabel("time")
+plt.ylabel("E(t)")
 plt.show()
 
 
-# 3.4
-# 1. Trayectorias de los agentes sobre el error de cobertura
-plt.figure(figsize=(10, 6))
-plt.subplot(2, 1, 1)
-plt.contourf(x, time, Lambda, cmap='viridis')
+#--------------------- 3.3 Static path planning ---------------------#
+n_agents = 5
+K = 2       # coverture intensity
+Kv = 0.05   # agent velocity
+R = 1.2     # Influence radius
+p = np.random.uniform(x_min, x_max, size=(n_agents, 2))
+p_history = np.zeros((N_ITER+1, n_agents, 2))
+p_history[0] = p
+dx = x[1] - x[0] 
+dy = y[1] - y[0] 
+
+Lambda = np.zeros((N_ITER+1, Nx, Ny))
+Lambda_star = 2 * K * np.ones((Nx, Ny))
+
+for k in range(N_ITER):
+    # Compute alpha for each agent
+    alpha = np.zeros((Ny, Nx))
+    for i in range(n_agents):
+        sigma = np.exp(-((X - p[i,0])**2 + (Y - p[i,1])**2) / (2 * R**2))
+        alpha += K * sigma
+    
+    # Update lambda
+    Lambda[k+1, :] = F * Lambda[k, :] + G * alpha
+
+    # Move agents
+    error_k =  Lambda_star - Lambda[k, :, :]
+    for i in range(n_agents):
+        # Move to the position with more error
+        dist_x = X - p[i, 0]
+        dist_y = Y - p[i, 1]
+        phi_i = np.exp(-(dist_x**2 + dist_y**2) / (2 * R**2))
+        d_phi_x = phi_i * dist_x / (R**2)
+        d_phi_y = phi_i * dist_y / (R**2)
+
+        dp_x = Kv * np.sum(error_k * d_phi_x) * dx
+        dp_y = Kv * np.sum(error_k * d_phi_y) * dy
+        p[i, 0] += dp_x * T
+        p[i, 1] += dp_y * T
+        p[i, 0] = np.clip(p[i, 0], x_min, x_max)
+        p[i, 1] = np.clip(p[i, 1], y_min, y_max)
+    p_history[k+1] = p
+
+error = np.sum((Lambda_star - Lambda)**2, axis=(1, 2)) * dA
+
+# Agent movement
+fig, ax = plt.subplots(figsize=(8, 6))
+im = ax.pcolormesh(X, Y, Lambda[0, :, :], cmap='viridis', shading='auto', vmin=0, vmax=Lambda_star.max()*1.2)
+plt.colorbar(im, label="Lambda level")
+
+agent_plots = []
 for i in range(n_agents):
-    plt.plot(p_history[:, i], time, 'r', label=f'Agente {i+1}' if i==0 else "")
-plt.title("Evolución de Cobertura y Trayectorias de Agentes (3.4)")
-plt.ylabel("Tiempo")
-plt.colorbar(label="Cobertura $\Lambda$")
-plt.legend()
+    line, = ax.plot([], [], 'r-', alpha=0.3)
+    point, = ax.plot([], [], 'ro', markersize=8, label=f"Agent {i+1}")
+    agent_plots.append((line, point))
 
-# 2. Perfil final vs Objetivo
-plt.subplot(2, 1, 2)
-plt.plot(x, Lambda_star, 'k--', label="Objetivo $\Lambda^*$")
-plt.plot(x, Lambda[-1, :], 'b', label="Cobertura Final")
-for pos in p:
-    plt.axvline(x=pos, color='r', alpha=0.3, linestyle=':')
-plt.title("Ajuste Final del Perfil")
-plt.xlabel("Espacio (x)")
+ax.set_title(f"3.3 Coverage with {n_agents} agents")
+ax.set_xlabel("X")
+ax.set_ylabel("Y")
+
+def update(k):
+    """Update frame"""
+    im.set_array(Lambda[k, :, :].ravel())
+    for i in range(n_agents):
+        _ , point = agent_plots[i]
+        point.set_data([p_history[k, i, 0]], [p_history[k, i, 1]])
+    return [im] + [p for plots in agent_plots for p in plots]
+
+ani = FuncAnimation(fig, update, frames=range(0, N_ITER, 2), interval=50, blit=True)
 plt.legend()
-plt.tight_layout()
+plt.show()
+
+# Cuadratic coverage error
+plt.figure()
+plt.plot(time, error)
+plt.title("3.3 Cuadratic coverage error of the domain")
+plt.xlabel("time")
+plt.ylabel("E(t)")
 plt.show()
