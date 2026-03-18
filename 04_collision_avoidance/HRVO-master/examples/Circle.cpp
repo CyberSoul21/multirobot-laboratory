@@ -69,10 +69,11 @@ int main()
 	}
 
 	do {
-		// write time to file
-        outfile << simulator.getGlobalTime();
+
 #if HRVO_OUTPUT_TIME_AND_POSITIONS
 		std::cout << simulator.getGlobalTime();
+		// write time to file
+        outfile << simulator.getGlobalTime();		
 
 		for (std::size_t i = 0; i < simulator.getNumAgents(); ++i) {
 			// write each agent position to file
