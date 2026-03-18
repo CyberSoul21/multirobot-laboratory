@@ -33,8 +33,12 @@
 # <https://gamma.cs.unc.edu/HRVO/>
 #
 
+# -*- mode: cmake -*-
+# vi: set ft=cmake :
+
 if(BUILD_TESTING)
   add_executable(Circle Circle.cpp)
+  add_executable(Square Square.cpp)
 
   option(OUTPUT_TIME_AND_POSITIONS "Output time and positions" ON)
 
@@ -48,10 +52,16 @@ if(BUILD_TESTING)
     ${HRVO_EXAMPLES_COMPILE_DEFINITIONS})
   target_link_libraries(Circle PRIVATE ${HRVO_LIBRARY})
 
+  target_compile_definitions(Square PRIVATE
+    ${HRVO_EXAMPLES_COMPILE_DEFINITIONS})
+  target_link_libraries(Square PRIVATE ${HRVO_LIBRARY})
+
   if(ENABLE_INTERPROCEDURAL_OPTIMIZATION
       AND HRVO_INTERPROCEDURAL_OPTIMIZATION_SUPPORTED)
     set_target_properties(Circle PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+    set_target_properties(Square PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
   endif()
 
   add_test(NAME Circle COMMAND Circle)
+  add_test(NAME Square COMMAND Square)
 endif()
