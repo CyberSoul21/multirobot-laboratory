@@ -57,13 +57,13 @@ int main()
 	Simulator simulator;
 	
 	std::ofstream outfile;
-	outfile.open("result.txt"); // open a file in write mode.
-
+	outfile.open("resultCircle.txt"); // open a file in write mode.
+	std::size_t numAgents = 250;
 
 	simulator.setTimeStep(0.25f);
 	simulator.setAgentDefaults(15.0f, 10, 1.5f, 1.5f, 1.0f, 2.0f);
 
-	for (std::size_t i = 0; i < 250; ++i) {
+	for (std::size_t i = 0; i < numAgents; ++i) {
 		const Vector2 position = 200.0f * Vector2(std::cos(0.004f * i * HRVO_TWO_PI), std::sin(0.004f * i * HRVO_TWO_PI));
 		simulator.addAgent(position, simulator.addGoal(-position));
 	}
