@@ -30,6 +30,7 @@ Vector2 interpolate(const Vector2 &p1, const Vector2 &p2, float t)
     return p1 + t * (p2 - p1);
 }
 
+//TODO: fix lenght of edges, currently if argument L=200, each edge is 400 units...
 std::vector<Vector2> makeSquareBorder(std::size_t numAgents, float L)
 {
     //center at (0,0)
@@ -66,6 +67,7 @@ std::vector<Vector2> makeSquareBorder(std::size_t numAgents, float L)
     return pts;
 }
 
+//TODO: check parametrization
 std::vector<Vector2> makeLetterW(std::size_t numAgents)
 {
     std::vector<Vector2> pts;
@@ -113,6 +115,7 @@ int main()
     std::vector<Vector2> startPositions = makeSquareBorder(numAgents, 200.0f);
     std::vector<Vector2> goalPositions  = makeLetterW(numAgents);    
 
+    //TODO:check how it should be working....
 	for (std::size_t i = 0; i < numAgents; ++i) {
 		simulator.addAgent(startPositions[i], simulator.addGoal(goalPositions[i]));
 	}
