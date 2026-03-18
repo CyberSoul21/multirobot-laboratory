@@ -46,6 +46,7 @@
 #endif
 
 #include <HRVO.h>
+#include <fstream>
 
 using namespace hrvo;
 
@@ -54,6 +55,10 @@ const float HRVO_TWO_PI = 6.283185307179586f;
 int main()
 {
 	Simulator simulator;
+	
+	std::ofstream outfile;
+	outfile.open("result.txt"); // open a file in write mode.
+
 
 	simulator.setTimeStep(0.25f);
 	simulator.setAgentDefaults(15.0f, 10, 1.5f, 1.5f, 1.0f, 2.0f);
@@ -64,13 +69,17 @@ int main()
 	}
 
 	do {
+		// write time to file
+        outfile << simulator.getGlobalTime();
 #if HRVO_OUTPUT_TIME_AND_POSITIONS
 		std::cout << simulator.getGlobalTime();
 
 		for (std::size_t i = 0; i < simulator.getNumAgents(); ++i) {
+			// write each agent position to file
+            outfile << " " << simulator.getAgentPosition(i);
 			std::cout << " " << simulator.getAgentPosition(i);
 		}
-
+		outfile << std::endl;
 		std::cout << std::endl;
 #endif /* HRVO_OUTPUT_TIME_AND_POSITIONS */
 
@@ -78,5 +87,6 @@ int main()
 	}
 	while (!simulator.haveReachedGoals());
 
+	outfile.close();
 	return 0;
 }
