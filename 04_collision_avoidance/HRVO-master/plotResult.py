@@ -1,7 +1,9 @@
 import math
 import matplotlib.pyplot as plt
 
-path = "result.txt"
+#TODO: receive .txt as argument
+#path = "resultCircle.txt"
+path = "resultSquare.txt"
 
 times = []
 rows = []
