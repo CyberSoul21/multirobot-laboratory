@@ -105,7 +105,7 @@ int main()
 	
 	std::ofstream outfile;
 	outfile.open("resultSquare.txt"); // open a file in write mode.
-	std::size_t numAgents = 250;
+	std::size_t numAgents = 50;//250;
 
 	simulator.setTimeStep(0.25f);
 	simulator.setAgentDefaults(15.0f, 10, 1.5f, 1.5f, 1.0f, 2.0f);
