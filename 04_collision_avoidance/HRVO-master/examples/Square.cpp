@@ -110,7 +110,9 @@ int main()
 	std::size_t numAgents = 50;//250;
 
 	simulator.setTimeStep(0.25f);
-	simulator.setAgentDefaults(15.0f, 10, 1.5f, 1.5f, 1.0f, 2.0f);
+    float radius = 1.5f;
+	simulator.setAgentDefaults(15.0f, 10, radius, 1.5f, 1.0f, 2.0f); // Set same radius as plot markersize
+    // setAgentDefaults(float neighborDist, std::size_t maxNeighbors, float radius, float goalRadius, float prefSpeed, float maxSpeed,)
 
     std::vector<Vector2> startPositions = makeSquareBorder(numAgents, 200.0f);
     std::vector<Vector2> goalPositions  = makeLetterW(numAgents);    

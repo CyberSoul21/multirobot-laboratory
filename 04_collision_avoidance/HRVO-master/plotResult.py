@@ -1,8 +1,10 @@
 import math
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 #TODO: receive .txt as argument
 #path = "resultCircle.txt"
+# path = "result.txt"
 path = "resultSquare.txt"
 
 times = []
@@ -27,13 +29,62 @@ for row in rows:
         traj_x[i].append(row[2*i])
         traj_y[i].append(row[2*i + 1])
 
-plt.figure(figsize=(8, 8))
-for i in range(n_agents):
-    plt.plot(traj_x[i], traj_y[i], linewidth=0.6)
+# plt.figure(figsize=(8, 8))
+# for i in range(n_agents):
+#     line, = plt.plot(traj_x[i], traj_y[i], linewidth=0.6)
+#     color = line.get_color()
+#     plt.plot(traj_x[i][0], traj_y[i][0], 'x', color=color)
+#     plt.plot(traj_x[i][-1], traj_y[i][-1], 'o', color=color)
 
-plt.xlabel("x")
-plt.ylabel("y")
-plt.title(f"Agent trajectories ({n_agents} agents)")
-plt.axis("equal")
-plt.grid(True)
+
+# plt.xlabel("x")
+# plt.ylabel("y")
+# plt.title(f"Agent trajectories ({n_agents} agents)")
+# plt.axis("equal")
+# plt.grid(True)
+# plt.show()
+
+fig, ax = plt.subplots(figsize=(8, 8))
+lines = []
+points = []
+markersize = 1.5 # Set same markersize as agent radius
+
+# Initialization
+for i in range(n_agents):
+    line, = ax.plot([], [], linewidth=0.6)
+    point, = ax.plot([], [], 'o', markersize=markersize)    
+    color = line.get_color()
+    point.set_color(color)
+    
+    lines.append(line)
+    points.append(point)
+
+
+ax.set_xlim(min(map(min, traj_x)), max(map(max, traj_x)))
+ax.set_ylim(min(map(min, traj_y)), max(map(max, traj_y)))
+
+# Update function
+current_x = [[] for _ in range(n_agents)]
+current_y = [[] for _ in range(n_agents)]
+
+def update(frame):
+    for i in range(n_agents):
+        current_x[i].append(traj_x[i][frame])
+        current_y[i].append(traj_y[i][frame])
+
+        lines[i].set_data(current_x[i], current_y[i])
+        points[i].set_data([traj_x[i][frame]], [traj_y[i][frame]])
+    
+    return lines + points
+
+# Animation
+anim = FuncAnimation(
+    fig,
+    update,
+    frames=len(traj_x[0]),
+    interval=1,  # ms entre frames, modify for visualization
+    blit=True,
+    repeat=False
+)
+
 plt.show()
