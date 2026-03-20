@@ -1,5 +1,9 @@
-import numpy as np
+#-----------------------------------
+# Javier Almario, NIP: 962449
+# Alvaro Provencio, NIP: 960625
+#-----------------------------------
 
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -10,6 +14,10 @@ T = 0.25            # sample time
 total_t = 100       # Total time
 F = np.exp(A * T)
 G = (B/A) * (np.exp(A*T) - 1)
+# 3.3 params
+K = 2       # coverture intensity
+Kv = 0.05   # agent velocity
+R = 1.2     # Influence radius
 
 # Time
 N_ITER = int(total_t / T)
@@ -99,9 +107,6 @@ plt.show()
 
 #--------------------- 3.3 Static path planning ---------------------#
 n_agents = 5
-K = 2       # coverture intensity
-Kv = 0.05   # agent velocity
-R = 1.2     # Influence radius
 p = np.random.uniform(x_min, x_max, size=(n_agents, 2))
 p_history = np.zeros((N_ITER+1, n_agents, 2))
 p_history[0] = p

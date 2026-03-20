@@ -1,3 +1,8 @@
+#-----------------------------------
+# Javier Almario, NIP: 962449
+# Alvaro Provencio, NIP: 960625
+#-----------------------------------
+
 import math
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
