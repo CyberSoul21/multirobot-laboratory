@@ -7,9 +7,8 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-#TODO: receive .txt as argument
 #path = "resultCircle.txt"
-# path = "result.txt"
+#path = "result.txt"
 path = "resultSquare.txt"
 
 times = []
@@ -33,21 +32,6 @@ for row in rows:
     for i in range(n_agents):
         traj_x[i].append(row[2*i])
         traj_y[i].append(row[2*i + 1])
-
-# plt.figure(figsize=(8, 8))
-# for i in range(n_agents):
-#     line, = plt.plot(traj_x[i], traj_y[i], linewidth=0.6)
-#     color = line.get_color()
-#     plt.plot(traj_x[i][0], traj_y[i][0], 'x', color=color)
-#     plt.plot(traj_x[i][-1], traj_y[i][-1], 'o', color=color)
-
-
-# plt.xlabel("x")
-# plt.ylabel("y")
-# plt.title(f"Agent trajectories ({n_agents} agents)")
-# plt.axis("equal")
-# plt.grid(True)
-# plt.show()
 
 fig, ax = plt.subplots(figsize=(8, 8))
 lines = []
