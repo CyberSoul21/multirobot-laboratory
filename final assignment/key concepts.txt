@@ -1,0 +1,23 @@
+1. They are given a set of target points in a grid. All agents have this knowledge a priori and arrange so that each agent is located at a target position and no target has more than one agent.
+2. All agents agree on the same global reference frame.
+3. the system is distributed, agents are identically programmed and act based on local information.
+
+Agents:
+1. They can measure its own position and orientation in the global frame at all time
+2. Each agent is a circle with radius 'r', can move in any direction at speed 'vm' or stop.
+3. Each agent is able to communicate with any agent in the communication range of 'R>4*sqrt(2)*r'.
+
+
+Target search per agent:
+1. For the goal shape, each agent picks a valid goal and moves collision-free and deadlock-free path without centralized coordination.
+2. method new_goal_selector -> to pick a valid goal. If it encounters another agent holding the same goal
+3. method motion_planner -> to plan the agent's motion to its current goal
+
+Motion planning:
+1. In real world the grid is created with lenght 'l', which is the edge lenght defined with 2*sqrt(2)*r <= l <= R/2 for collision avoidance.
+2. It is assume that there are no obstacles in the environment.
+3. Constraint A.1: At any time t, no agents moves to the waypoint that is currently occupied by other and no pair of agents move towards the same waypoint at the same time.
+4. Constraint A.2: At any time t, no pair of agents travel on the same edge in opposite directions.
+5. Five possible actions: north, east, south, west and wait. Choosing the action that greedely reduces the manhattan distance to its goal point.
+6. Once an agent has chosen an action and if it is not 'wait', it first uses communication to check if the waypoint is already occupied, if so it does wait and keeps checkin it's availability. If not, it checks if there are other robots wanting to go to that waypoints, going the one with largest distance to its goal.
+7. Each agent constantly tries to improve the goal assignment pairwise with other agents
