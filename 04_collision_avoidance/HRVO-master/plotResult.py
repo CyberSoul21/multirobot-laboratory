@@ -36,7 +36,7 @@ for row in rows:
 fig, ax = plt.subplots(figsize=(8, 8))
 lines = []
 points = []
-markersize = 1.5 # Set same markersize as agent radius
+markersize = 3.0 #1.5 # Set same markersize as agent radius
 
 # Initialization
 for i in range(n_agents):

@@ -25,6 +25,9 @@ using namespace hrvo;
 const float HRVO_TWO_PI = 6.283185307179586f;
 
 //creates a point between two points.
+
+//interpolate: A utility function that calculates a point between two given coordinates based on a factor $t$ (0 to 1). 
+//This is essential for placing robots along lines
 Vector2 interpolate(const Vector2 &p1, const Vector2 &p2, float t)
 {
     return p1 + t * (p2 - p1);
@@ -99,6 +102,28 @@ std::vector<Vector2> makeLetterW(std::size_t numAgents)
 
 int main()
 {
+    //Choose a velocity at each time step that avoids collisions while moving toward the goal
+    //Multi-agent → everyone moves
+    //No communication
+    //Real-time constraint
+    //Problem is NP-hard globally
+    //So we solve it locally in velocity space
+
+    //Velocity Obstacle (VO)
+    //“Which velocities will cause a collision?”
+
+    //Problem: Oscillation
+
+    //Solution: RVO (Reciprocal VO): Both robots share responsibility, Instead of avoiding completely, each does half   
+    //If robots follow preferred velocity strongly
+    //Or third robot interferes
+    //👉 Oscillations can still happen
+
+    //Final solution: HRVO (Hybrid RVO)
+    //Add a bias (decision consistency)
+    //Define a center line (CL) of RVO
+    //If robot is on one side → it stays on that side
+
 	Simulator simulator;
 	
 	std::ofstream outfile;
@@ -106,7 +131,7 @@ int main()
 	std::size_t numAgents = 50;//250;
 
 	simulator.setTimeStep(0.25f);
-    float radius = 1.5f;
+    float radius = 3.0f;
 	simulator.setAgentDefaults(15.0f, 10, radius, 1.5f, 1.0f, 2.0f); // Set same radius as plot markersize
     
     std::vector<Vector2> startPositions = makeSquareBorder(numAgents, 200.0f);

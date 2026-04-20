@@ -8,12 +8,12 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 # Parameters
-A = -0.25           # A < 0
-B = 1.0             # B > 0
-T = 0.25            # sample time
+A = -0.25           # A < 0           #Environmental Decay
+B = 1.0             # B > 0           #Robot Effectiveness ($B$): 
+T = 0.25            # sample time     # The time step for each calculation (0.25 seconds).
 total_t = 100       # Total time
-F = np.exp(A * T)
-G = (B/A) * (np.exp(A*T) - 1)
+F = np.exp(A * T)                     #Discrete Evolution (F and G): 
+G = (B/A) * (np.exp(A*T) - 1)         #These are the exact transition matrices required to update the state in a computer simulation.
 # 3.3 params
 K = 2       # coverture intensity
 Kv = 0.05   # agent velocity
@@ -24,6 +24,7 @@ N_ITER = int(total_t / T)
 time = np.arange(N_ITER+1) * T
 
 # Domain
+# A 2D grid of $100 \times 100$ points (Nx, Ny) representing the area to be covered.
 x_min, x_max = -10, 10
 y_min, y_max = -10, 10
 Nx, Ny = 100, 100
@@ -36,11 +37,18 @@ dA = (x[1] - x[0]) * (y[1] - y[0])
 #--------------------- 3.1 Environment ---------------------#
 alpha = 0           # agents
 Lambda = np.zeros((N_ITER+1, Nx, Ny))
+#Desired Coverage ($\Lambda^*$): Though the snippet is partial, the theory suggests a target level Lambda_star that the robots try to maintain.
 Lambda_star = 2 * np.ones((Nx, Ny))
 Lambda[0, :, :] = 2   # initial spatial condition
 
+#The Coverage Update (The "Environment" Logic)
+#The core of the simulation loop implements the discrete equation :
 for k in range(N_ITER):
     Lambda[k+1, : ,:] = F * Lambda[k, :, :] + G * alpha
+
+#This line updates every single point on the map. If alpha (the robot's action) is 0, 
+# the map simply decays based on $F$. If a robot is present, 
+# its "footprint" ($\sigma$) is added through the alpha term
 
 error = np.sum((Lambda_star - Lambda)**2, axis=(1, 2)) * dA
 
@@ -116,6 +124,13 @@ dy = y[1] - y[0]
 Lambda = np.zeros((N_ITER+1, Nx, Ny))
 Lambda_star = 2 * K * np.ones((Nx, Ny))
 
+
+#Motion Control (The "Robot" Logic)
+# The code implements a Gradient-Based Control Law to move the agents:
+# -Influence Radius (R): Defines the robot's sensor/actuator range.
+# -Error Calculation: The robot calculates the difference between where the map is and 
+# -where it should be: error_k = Lambda_star - Lambda.
+
 for k in range(N_ITER):
     # Compute alpha for each agent
     alpha = np.zeros((Ny, Nx))
@@ -135,9 +150,11 @@ for k in range(N_ITER):
         phi_i = np.exp(-(dist_x**2 + dist_y**2) / (2 * R**2))
         d_phi_x = phi_i * dist_x / (R**2)
         d_phi_y = phi_i * dist_y / (R**2)
-
+        
+        #This line tells the robot to move in the direction of the highest error .
         dp_x = Kv * np.sum(error_k * d_phi_x) * dx
         dp_y = Kv * np.sum(error_k * d_phi_y) * dy
+        #------------------------------------------------------------------------
         p[i, 0] += dp_x * T
         p[i, 1] += dp_y * T
         p[i, 0] = np.clip(p[i, 0], x_min, x_max)
@@ -145,6 +162,11 @@ for k in range(N_ITER):
     p_history[k+1] = p
 
 error = np.sum((Lambda_star - Lambda)**2, axis=(1, 2)) * dA
+
+#Integrator Dynamics: The robot position p is updated by adding a velocity dp times time T (p[i, 0] += dp_x * T), confirming the $\dot{p} = u$ model.
+# Quadratic Error: At the end, the code calculates the performance metric mentioned in the lab: error = np.sum((Lambda_star - Lambda)**2 ...). This total "cost" tells us how well the multi-robot team is performing its task.
+# Saturation/Clipping: The code uses np.clip to ensure robots stay within the map boundaries (x_min, x_max), which is a practical constraint for any real-world MRS.
+
 
 # Agent movement
 fig, ax = plt.subplots(figsize=(8, 6))

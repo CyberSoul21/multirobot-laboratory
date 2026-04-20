@@ -82,10 +82,10 @@ c_robots = robots_on_regular_polygon(np.array([[0],[0]]), n_robots=Num_robots, n
 c = np.hstack((c_robots,np.array([[0],[0]])))
 
 # Compute Q and C with N+N columns
-Q = np.zeros((2,N*N))
-C = np.zeros((2,N*N))
+Q = np.zeros((2,N*N)) #distances q_ij = i - j
+C = np.zeros((2,N*N)) #desired 
 idx = 0
-for i in range(N):
+for i in range(N): #compute
     for j in range(N):
         Q[:,idx] = q[:,i]-q[:,j]
         C[:,idx] = c[:,i]-c[:,j]
@@ -99,18 +99,32 @@ d = np.linalg.det(V @ U.T)
 D = np.eye(2) # R must be 2x2 for 2d robotics
 D[1, 1] = np.sign(d)
 R = V @ D @ U.T
+#Because robots lack a common orientation, 
+#the script must solve the Procrustes problem to find the optimal rotation matrix $R$ 
+# that minimizes the error between current and desired positions
 
 # Compute enclosing
 trajectories = np.zeros((t_steps,2,Num_robots))
 target_idx = N - 1
+errors = []
 for k in range(t_steps):
+    current_error = np.linalg.norm(Q - R @ C, 'fro')**2
+    errors.append(current_error) 
     for i in range(Num_robots):
         trajectories[k, :, i] = q[:, i]
-        q_Ni = q[:, target_idx] - q[:, i]
+        # calculating relative vectors q_Ni (current relative position) and c_Ni (desired relative position).
+        q_Ni = q[:, target_idx] - q[:, i]# vector, compute for each robot 
         c_Ni = c[:, target_idx] - c[:, i]
-        dq_i = Kc * (q_Ni - R @ c_Ni)
+        #Single-Integrator Kinematics: The theoretical model $\dot{q}_i = u_i$ 
+        # it is implemented as a discrete update: q[:, i] += dq_i * dt.
+
+        #current_error = np.linalg.norm(q_Ni - R @ c_Ni, 'fro')**2
+        #errors.append(current_error)         
+        
+        dq_i = Kc * (q_Ni - R @ c_Ni)        
         q[:, i] += dq_i * dt
         
+print(errors)        
 
 # --- PLOTTING ---
 plt.figure(figsize=(8, 8))
@@ -132,4 +146,15 @@ plt.ylabel("Y position")
 plt.title("Enclosing")
 plt.legend()
 plt.grid(True)
+plt.show()
+
+# Error
+plt.figure()
+plt.plot(np.arange(t_steps) * dt, errors, label='Formation Error ($\gamma$)', color='blue')
+plt.title('Evolution of Formation Error Over Time')
+plt.xlabel('Time (s)')
+plt.ylabel('Error Value')
+plt.grid(True)
+plt.yscale('log') # Using a log scale is often better for exponential decay
+plt.legend()
 plt.show()
