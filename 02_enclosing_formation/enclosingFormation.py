@@ -65,7 +65,7 @@ def robots_on_regular_polygon(center, n_robots: int, n_sides: int, radius: float
 
     return robots
 
-Num_robots = 12
+Num_robots = 10
 N = Num_robots + 1 # Robot + target
 t_steps = 1000 # for testing
 Kc = 1
@@ -78,10 +78,10 @@ q = np.hstack((q_robots,target))
 
 # Reference formation C (2 x N) centered at zero for rotation math
 # c_robots = points_around(np.array([[0],[0]]), n=Num_robots, radius=1.0, rotation=45) #Circle
-c_robots = robots_on_regular_polygon(np.array([[0],[0]]), n_robots=Num_robots, n_sides=6,radius=1.0, rotation=45) #Polygon
+c_robots = robots_on_regular_polygon(np.array([[0],[0]]), n_robots=Num_robots, n_sides=5,radius=1.0, rotation=45) #Polygon
 c = np.hstack((c_robots,np.array([[0],[0]])))
 
-# Compute Q and C with N+N columns
+# Compute Q and C with N*N columns
 Q = np.zeros((2,N*N))
 C = np.zeros((2,N*N))
 idx = 0
@@ -103,6 +103,8 @@ R = V @ D @ U.T
 # Compute enclosing
 trajectories = np.zeros((t_steps,2,Num_robots))
 target_idx = N - 1
+plt.figure()
+error = []
 for k in range(t_steps):
     for i in range(Num_robots):
         trajectories[k, :, i] = q[:, i]
@@ -110,8 +112,10 @@ for k in range(t_steps):
         c_Ni = c[:, target_idx] - c[:, i]
         dq_i = Kc * (q_Ni - R @ c_Ni)
         q[:, i] += dq_i * dt
+        error.append(q_Ni[0] **2 + q_Ni[1] **2)
         
-
+dt = np.linspace(0,t_steps,1)
+plt.plot(error, dt) 
 # --- PLOTTING ---
 plt.figure(figsize=(8, 8))
 plt.scatter(q_robots[0], q_robots[1], color='green', label="Initial positions", alpha=0.5)

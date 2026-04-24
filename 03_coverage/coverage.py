@@ -8,8 +8,8 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 # Parameters
-A = -0.25           # A < 0
-B = 1.0             # B > 0
+A = -0.1          # A < 0 # How fast it decays
+B = 1             # B > 0 # How fast an agent provides coverage
 T = 0.25            # sample time
 total_t = 100       # Total time
 F = np.exp(A * T)
@@ -17,7 +17,8 @@ G = (B/A) * (np.exp(A*T) - 1)
 # 3.3 params
 K = 2       # coverture intensity
 Kv = 0.05   # agent velocity
-R = 1.2     # Influence radius
+R = 1     # Influence radius
+n_agents = 5
 
 # Time
 N_ITER = int(total_t / T)
@@ -62,11 +63,7 @@ plt.show()
 
 
 #--------------------- 3.2 A first agent ---------------------#
-n_agents = 1
-K = 1     #coverture intensity
-R = 0.8   # Influence radius
 p = np.array([0.0, 0.0])
-
 Lambda = np.zeros((N_ITER+1, Nx, Ny))
 Lambda_star = 2 * K * np.ones((Nx, Ny))
 
@@ -106,7 +103,6 @@ plt.show()
 
 
 #--------------------- 3.3 Static path planning ---------------------#
-n_agents = 5
 p = np.random.uniform(x_min, x_max, size=(n_agents, 2))
 p_history = np.zeros((N_ITER+1, n_agents, 2))
 p_history[0] = p

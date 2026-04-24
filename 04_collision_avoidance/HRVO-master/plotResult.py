@@ -7,9 +7,9 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-#path = "resultCircle.txt"
-#path = "result.txt"
-path = "resultSquare.txt"
+# path = "04_collision_avoidance/HRVO-master/resultCircle.txt"
+# path = "04_collision_avoidance/HRVO-master/result.txt"
+path = "04_collision_avoidance/HRVO-master/resultSquare.txt"
 
 times = []
 rows = []

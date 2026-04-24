@@ -21,3 +21,9 @@ Motion planning:
 5. Five possible actions: north, east, south, west and wait. Choosing the action that greedely reduces the manhattan distance to its goal point.
 6. Once an agent has chosen an action and if it is not 'wait', it first uses communication to check if the waypoint is already occupied, if so it does wait and keeps checkin it's availability. If not, it checks if there are other robots wanting to go to that waypoints, going the one with largest distance to its goal.
 7. Each agent constantly tries to improve the goal assignment pairwise with other agents
+
+
+
+
+Metrics:
+Include some plots additional to the movement: Some error graphic considering distances, 
