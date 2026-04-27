@@ -181,19 +181,99 @@ for agent in A:
 # 5. implement local task swapping
 # ***********************************************************
 def simulation_step():
-    # TODO:
-    # for agent in A:
-    #     agent.motion_planner(...)
-    #
-    # TODO:
-    # resolve collisions and waypoint conflicts
-    #
-    # TODO:
-    # update agent positions
-    #
-    # TODO:
-    # resolve duplicate goals and swaps
-    pass
+    # ====================================================
+    # 1. THINK: each agent proposes a next waypoint
+    # ====================================================
+    for agent in A:
+        agent.goal_selector(A, Q)
+        agent.motion_planner(x_min, x_max, y_min, y_max)
+
+    # ====================================================
+    # 2. COLLISION CHECK: decide who is allowed to move
+    # ====================================================
+    approved = {agent.id: True for agent in A}
+
+    # ----------------------------------------------------
+    # 2A. Waypoint conflict:
+    # several agents want the same next_pos
+    # ----------------------------------------------------
+    proposed = {}
+
+    for agent in A:
+        proposed.setdefault(agent.next_pos, []).append(agent)
+
+    for waypoint, agents_wanting_wp in proposed.items():
+        if len(agents_wanting_wp) > 1:
+            # Lexicographic priority: larger current position wins
+            winner = max(agents_wanting_wp, key=lambda a: a.get_pos())
+
+            for agent in agents_wanting_wp:
+                if agent is not winner:
+                    approved[agent.id] = False
+
+    # ----------------------------------------------------
+    # 2B. Occupied waypoint conflict:
+    # agent wants to move into a cell currently occupied
+    # by another agent who is not moving away safely
+    # ----------------------------------------------------
+    current_positions = {
+        agent.get_pos(): agent for agent in A
+    }
+
+    for agent in A:
+        target = agent.next_pos
+
+        if target in current_positions:
+            occupying_agent = current_positions[target]
+
+            if occupying_agent.id != agent.id:
+                approved[agent.id] = False
+
+    # ----------------------------------------------------
+    # 2C. Edge conflict:
+    # two agents try to exchange positions
+    # ----------------------------------------------------
+    for agent in A:
+        for other in A:
+            if agent.id >= other.id:
+                continue
+
+            if (
+                agent.next_pos == other.get_pos()
+                and other.next_pos == agent.get_pos()
+            ):
+                approved[agent.id] = False
+                approved[other.id] = False
+
+    # ====================================================
+    # 3. WALK: move only approved agents
+    # ====================================================
+    for agent in A:
+        if approved[agent.id]:
+            agent.set_pos(*agent.next_pos)
+        else:
+            agent.next_pos = agent.get_pos()
+            agent.claimed_wp = agent.get_pos()
+
+    # ====================================================
+    # 4. LOCAL TASK SWAPPING
+    # ====================================================
+    processed_pairs = set()
+
+    for agent in A:
+        for other in A:
+            if agent.id == other.id:
+                continue
+
+            pair = tuple(sorted((agent.id, other.id)))
+
+            if pair in processed_pairs:
+                continue
+
+            if agent.can_communicate(other):
+                agent.try_goal_swap(other)
+
+            processed_pairs.add(pair)
 #***********************************************************
 #***********************************************************
 
