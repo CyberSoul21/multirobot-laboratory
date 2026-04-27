@@ -23,7 +23,9 @@ Motion planning:
 7. Each agent constantly tries to improve the goal assignment pairwise with other agents
 
 
-
+Article vs Our implementation:
+The article aim for real time robots with concurrency, meanwhile we are looping on a grid.
+The article defines 3 threads per robot and accounts for the time it takes a robot from a waypoint to another. We move instantly and we do not have concurrency
 
 Metrics:
 Include some plots additional to the movement: Some error graphic considering distances, 

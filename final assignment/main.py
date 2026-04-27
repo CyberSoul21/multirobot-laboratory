@@ -4,10 +4,33 @@ from matplotlib.animation import FuncAnimation
 import math
 from Agent import Agent
 
+
+
+def simulation_step():
+    # Listen-Think-Walk manner
+    # Listen (Add as neigbors all the agents within communication range)
+    for agent in A:
+        neighbors = []
+        for neighbor in A:
+            if(neighbor is not agent and agent.is_in_range(neighbor.get_pos())):
+                neighbors.append(neighbor)
+        agent.setNeighbors(neighbors = neighbors)
+
+    # Think (Reorganize goal and plan next waypoint)
+    for agent in A:
+        agent.goal_selector()
+        agent.motion_planner()
+
+    # Move 
+    for agent in A:
+        agent.move()
+
+
+# Defining initial components
 num_agents = 10
 comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
+Total_time = 1000
 # Here we do not define vm, we are considering all robots are able to move one step at each iteration
-# Defining initial components
 
 # Grid 
 x_min, x_max = 0 , 10
@@ -36,14 +59,8 @@ for a in range(num_agents):
 
 # # Code to iterate over all agents at each time step
 
-
 # Code to display grid
 fig, ax = plt.subplots(figsize=(6, 6))
-
-for agent in A:
-    posx, posy = agent.get_pos()
-    ax.plot(posx, posy, 'ro')
-    
 ax.set_title(f"Target formation with {num_agents} agents")
 ax.set_xlabel("X")
 ax.set_ylabel("Y")
@@ -52,4 +69,13 @@ ax.set_yticks(range(y_min, y_max + 1))
 ax.set_xlim(x_min - 0.5, x_max + 0.5)
 ax.set_ylim(y_min - 0.5, y_max + 0.5)
 ax.grid(True)
-plt.show()
+
+for t in range(Total_time):
+    simulation_step()
+
+    for agent in A:
+        posx, posy = agent.get_pos()
+        ax.plot(posx, posy, 'ro')
+    
+    plt.show()
+
