@@ -200,22 +200,21 @@ class Agent:
     def move(self):
         x, y = self.next_pos
         self.set_pos(x, y)
+
+
     # ***********************************************************
     # Goal selector
     # ***********************************************************
+
     def goal_selector(self, agents, Q):
         """
         PAPER CONNECTION:
-        Simplified implementation of the New Goal Selector
-        from Section III-B.
+        Simplified implementation of the New Goal Selector from Section III-B.
 
         Paper idea:
-        - Because agents only have local information, two agents may
-          hold the same goal.
-        - If two neighboring agents detect that they hold the same goal,
-          one of them selects a new goal.
-        - The paper uses lexicographical order to decide which robot
-          changes its goal.
+        - Because agents only have local information, two agents may hold the same goal.
+        - If two neighboring agents detect that they hold the same goal, one of them selects a new goal.
+        - The paper uses lexicographical order to decide which robot changes its goal.
 
         This implementation:
         - Detects duplicate goals only among communicating neighbors.
@@ -224,9 +223,44 @@ class Agent:
 
         IMPORTANT:
         This is NOT the full gradient-based selector from the paper.
-        The paper propagates candidate unassigned goals using hop-count
-        messages. Here we use a simpler random/free-goal selection.
+        The paper propagates candidate unassigned goals using hop-count messages.
+        Here we use a simpler random/free-goal selection.
         """
+
+        # Initialization: assign a random goal if none exists
+        if self.goal is None:
+            self.goal = random.choice(Q)
+            return self.goal
+
+        for other in agents:
+            if other.id == self.id:
+                continue
+
+            # Only consider local communication neighborhood
+            if not self.can_communicate(other):
+                continue
+
+            # Duplicate-goal conflict
+            if self.goal == other.goal:
+
+                # Lexicographical tie-breaking (based on position)
+                if self.get_pos() < other.get_pos():
+
+                    # Collect goals of neighbors
+                    neighbor_goals = [
+                        other.goal
+                        for other in agents
+                        if other.id != self.id and self.can_communicate(other)
+                    ]
+
+                    # Select free goals
+                    free_goals = [q for q in Q if q not in neighbor_goals]
+
+                    if free_goals:
+                        self.goal = random.choice(free_goals)
+                    else:
+                        # Fallback: choose any goal randomly
+                        self.goal = random.choice(Q)
 
         return self.goal
 
