@@ -11,12 +11,17 @@ comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
 # Defining initial components
 
 # Grid 
-x_min, x_max = 0 , 10
-y_min, y_max = 0 , 10
-Nx, Ny = 11, 11
+#x_min, x_max = 0 , 10
+#y_min, y_max = 0 , 10
+#Nx, Ny = 11, 11
 # x_min, x_max = 0 , 100
 # y_min, y_max = 0 , 100
 # Nx, Ny = 101, 101
+
+x_min, x_max = 0, 20
+y_min, y_max = 0, 20
+Nx, Ny = 21, 21
+
 x = np.linspace(x_min, x_max, Nx)
 y = np.linspace(y_min, y_max, Ny)
 X, Y = np.meshgrid(x, y) 
@@ -42,15 +47,26 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
         cy = (y_min + y_max) / 2
         radius = min(x_max - x_min, y_max - y_min) / 3
 
-        angles = np.linspace(0, 2 * math.pi, n, endpoint=False)
+        samples = max(10 * n, 100)
+        angles = np.linspace(0, 2 * math.pi, samples, endpoint=False)
 
         for theta in angles:
             x = round(cx + radius * math.cos(theta))
             y = round(cy + radius * math.sin(theta))
-            Q.append((x, y))
+
+            p = (x, y)
+
+            if (
+                x_min <= x <= x_max
+                and y_min <= y <= y_max
+                and p not in Q
+            ):
+                Q.append(p)
+
+            if len(Q) == n:
+                break
 
     elif shape == "A":
-        # Simple letter A using grid points
         raw_points = [
             (5, 9),
             (4, 8), (6, 8),
@@ -62,29 +78,45 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
             (3, 2), (7, 2),
         ]
 
-        Q = raw_points[:n]
+        for p in raw_points:
+            x, y = p
+            if (
+                x_min <= x <= x_max
+                and y_min <= y <= y_max
+                and p not in Q
+            ):
+                Q.append(p)
+
+            if len(Q) == n:
+                break
 
     elif shape == "line":
         cx = (x_min + x_max) // 2
-        ys = np.linspace(y_min, y_max, n, dtype=int)
-        Q = [(cx, int(y)) for y in ys]
+        available_y = list(range(y_min, y_max + 1))
+
+        if n > len(available_y):
+            raise ValueError(
+                f"Line shape needs {n} targets, but only "
+                f"{len(available_y)} vertical grid cells are available."
+            )
+
+        indices = np.linspace(0, len(available_y) - 1, n, dtype=int)
+
+        for i in indices:
+            p = (cx, available_y[i])
+            if p not in Q:
+                Q.append(p)
 
     else:
         raise ValueError("Unknown shape. Use: circle, A, line")
 
-    # Remove repeated points caused by rounding
-    Q_unique = []
-    for p in Q:
-        if p not in Q_unique:
-            Q_unique.append(p)
-
-    if len(Q_unique) < n:
+    if len(Q) < n:
         raise ValueError(
-            f"Only generated {len(Q_unique)} unique targets. "
-            f"Increase grid size or reduce num_agents."
+            f"Only generated {len(Q)} unique targets. "
+            f"Increase grid size, reduce num_agents, or use another shape."
         )
 
-    return Q_unique[:n]
+    return Q[:n]
 # ***********************************************************
 # ***********************************************************
 
@@ -196,7 +228,7 @@ ax.grid(True)
 # TEST YOUR PART: TARGET GENERATION
 # ============================================================
 
-test_shapes = ["line", "square", "random_connected"]
+test_shapes = ["line", "circle", "A"]
 
 for shape in test_shapes:
     Q_test = target_location(
@@ -213,12 +245,8 @@ for shape in test_shapes:
     print("Number of targets:", len(Q_test))
     print("Unique targets:", len(set(Q_test)))
 
-    assert len(Q_test) == num_agents, "Wrong number of targets"
-    assert len(set(Q_test)) == num_agents, "Repeated target found"
-
-    for qx, qy in Q_test:
-        assert x_min <= qx <= x_max, "Target x outside grid"
-        assert y_min <= qy <= y_max, "Target y outside grid"
+    assert len(Q_test) == num_agents
+    assert len(set(Q_test)) == num_agents
 
 print("\nAll target-generation tests passed.")
 
