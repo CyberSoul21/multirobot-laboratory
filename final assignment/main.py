@@ -5,7 +5,7 @@ import math
 import random
 from Agent import Agent
 
-num_agents = 10
+num_agents = 18
 comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
 # Here we do not define vm, we are considering all robots are able to move one step at each iteration
 # Defining initial components
@@ -32,71 +32,59 @@ grid_pos = all_positions[chosen_indices] # different grid positions without repe
 # ***********************************************************
 
 def target_location(shape, n, x_min, x_max, y_min, y_max):
+    import numpy as np
+    import math
+
     Q = []
 
-    if shape == "line":
+    if shape == "circle":
+        cx = (x_min + x_max) / 2
+        cy = (y_min + y_max) / 2
+        radius = min(x_max - x_min, y_max - y_min) / 3
+
+        angles = np.linspace(0, 2 * math.pi, n, endpoint=False)
+
+        for theta in angles:
+            x = round(cx + radius * math.cos(theta))
+            y = round(cy + radius * math.sin(theta))
+            Q.append((x, y))
+
+    elif shape == "A":
+        # Simple letter A using grid points
+        raw_points = [
+            (5, 9),
+            (4, 8), (6, 8),
+            (3, 7), (7, 7),
+            (3, 6), (7, 6),
+            (3, 5), (4, 5), (5, 5), (6, 5), (7, 5),
+            (3, 4), (7, 4),
+            (3, 3), (7, 3),
+            (3, 2), (7, 2),
+        ]
+
+        Q = raw_points[:n]
+
+    elif shape == "line":
         cx = (x_min + x_max) // 2
-        y_values = np.linspace(y_min, y_max, n, dtype=int)
-        Q = [(cx, int(y)) for y in y_values]
-
-    elif shape == "square":
-        side = int(np.ceil(np.sqrt(n)))
-        cx = (x_min + x_max) // 2
-        cy = (y_min + y_max) // 2
-
-        start_x = cx - side // 2
-        start_y = cy - side // 2
-
-        for i in range(side):
-            for j in range(side):
-                if len(Q) < n:
-                    qx = start_x + i
-                    qy = start_y + j
-
-                    if x_min <= qx <= x_max and y_min <= qy <= y_max:
-                        Q.append((qx, qy))
-
-    elif shape == "random_connected":
-        cx = (x_min + x_max) // 2
-        cy = (y_min + y_max) // 2
-
-        Q = [(cx, cy)]
-        frontier = [(cx, cy)]
-
-        while len(Q) < n and frontier:
-            bx, by = random.choice(frontier)
-
-            neighbors = [
-                (bx + 1, by),
-                (bx - 1, by),
-                (bx, by + 1),
-                (bx, by - 1),
-            ]
-
-            random.shuffle(neighbors)
-
-            added = False
-            for nx, ny in neighbors:
-                if (
-                    x_min <= nx <= x_max
-                    and y_min <= ny <= y_max
-                    and (nx, ny) not in Q
-                ):
-                    Q.append((nx, ny))
-                    frontier.append((nx, ny))
-                    added = True
-                    break
-
-            if not added:
-                frontier.remove((bx, by))
+        ys = np.linspace(y_min, y_max, n, dtype=int)
+        Q = [(cx, int(y)) for y in ys]
 
     else:
-        raise ValueError("Unknown shape. Use: line, square, random_connected")
+        raise ValueError("Unknown shape. Use: circle, A, line")
 
-    if len(Q) < n:
-        raise ValueError("Grid is too small for this number of targets.")
+    # Remove repeated points caused by rounding
+    Q_unique = []
+    for p in Q:
+        if p not in Q_unique:
+            Q_unique.append(p)
 
-    return Q[:n]
+    if len(Q_unique) < n:
+        raise ValueError(
+            f"Only generated {len(Q_unique)} unique targets. "
+            f"Increase grid size or reduce num_agents."
+        )
+
+    return Q_unique[:n]
 # ***********************************************************
 # ***********************************************************
 
@@ -124,7 +112,7 @@ for a in range(num_agents):
 # Q = target_location(shape = 'A', n = num_agents ) # we can try to define a shape and distribute de target locations along it with the number of agents
 
 Q = target_location(
-    shape="square",
+    shape="A",
     n=num_agents,
     x_min=x_min,
     x_max=x_max,
@@ -202,4 +190,38 @@ ax.set_yticks(range(y_min, y_max + 1))
 ax.set_xlim(x_min - 0.5, x_max + 0.5)
 ax.set_ylim(y_min - 0.5, y_max + 0.5)
 ax.grid(True)
+
+
+# ============================================================
+# TEST YOUR PART: TARGET GENERATION
+# ============================================================
+
+test_shapes = ["line", "square", "random_connected"]
+
+for shape in test_shapes:
+    Q_test = target_location(
+        shape=shape,
+        n=num_agents,
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max
+    )
+
+    print(f"\nShape: {shape}")
+    print("Q =", Q_test)
+    print("Number of targets:", len(Q_test))
+    print("Unique targets:", len(set(Q_test)))
+
+    assert len(Q_test) == num_agents, "Wrong number of targets"
+    assert len(set(Q_test)) == num_agents, "Repeated target found"
+
+    for qx, qy in Q_test:
+        assert x_min <= qx <= x_max, "Target x outside grid"
+        assert y_min <= qy <= y_max, "Target y outside grid"
+
+print("\nAll target-generation tests passed.")
+
+
+
 plt.show()
