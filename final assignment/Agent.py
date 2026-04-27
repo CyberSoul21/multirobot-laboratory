@@ -220,6 +220,42 @@ class Agent:
         messages. Here we use a simpler random/free-goal selection.
         """
 
+
+        if self.goal is None:
+            # Simulation initialization:
+            # if the robot has no goal, assign a random target from Q.
+            self.goal = random.choice(Q)
+            return self.goal
+
+        for other in agents:
+            if other.id == self.id:
+                continue
+
+            # PAPER: only use local communication neighborhood N_ai(t).
+            if not self.can_communicate(other):
+                continue
+
+            # PAPER: duplicate-goal conflict:
+            # T_ai(t) == T_aj(t)
+            if self.goal == other.goal:
+
+                # PAPER: lexicographical tie-breaking.
+                # This simplified Python version uses tuple comparison.
+                # The robot with smaller position changes goal.
+                if self.get_pos() < other.get_pos():
+
+                    # Simulation approximation:
+                    # Choose a goal that is not currently assigned.
+                    occupied_goals = [a.goal for a in agents]
+                    free_goals = [q for q in Q if q not in occupied_goals]
+
+                    if free_goals:
+                        self.goal = random.choice(free_goals)
+                    else:
+                        # If no free goal is visible, choose randomly.
+                        # This approximates the random selector case.
+                        self.goal = random.choice(Q)
+
         return self.goal
 
 
