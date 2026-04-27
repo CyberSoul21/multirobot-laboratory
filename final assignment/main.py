@@ -151,14 +151,49 @@ for agent in A:
 # ***********************************************************    
 
 
+# ***********************************************************
+# ALVARO PART: SIMULATION LOOP LOGIC
+# The function should implement:
+# 1. call each agent.motion_planner()
+# 2. detect waypoint conflicts
+# 3. move only safe agents
+# 4. call each agent.goal_selector()
+# 5. implement local task swapping
+# ***********************************************************
+def simulation_step():
+    # TODO:
+    # for agent in A:
+    #     agent.motion_planner(...)
+    #
+    # TODO:
+    # resolve collisions and waypoint conflicts
+    #
+    # TODO:
+    # update agent positions
+    #
+    # TODO:
+    # resolve duplicate goals and swaps
+    pass
+#***********************************************************
+#***********************************************************
 
-# Code to display grid
+
+#TODO: Check this test, chatGPT generated...
+# ============================================================
+# VISUALIZATION
+# Red circles: agents
+# Blue squares: target positions Q
+# ============================================================
+
 fig, ax = plt.subplots(figsize=(6, 6))
 
 for agent in A:
     posx, posy = agent.get_pos()
     ax.plot(posx, posy, 'ro')
-    
+
+for qx, qy in Q:
+    ax.plot(qx, qy, 'bs', markersize=8, fillstyle='none')
+
 ax.set_title(f"Target formation with {num_agents} agents")
 ax.set_xlabel("X")
 ax.set_ylabel("Y")
