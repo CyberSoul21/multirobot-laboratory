@@ -212,7 +212,7 @@ class Agent:
         This implementation:
         - Detects duplicate goals only among communicating neighbors.
         - The lexicographically smaller-position robot changes goal.
-        - It chooses a free target if one is globally visible in simulation.
+        - It chooses a target that appears free based only on local neighbor information.
 
         IMPORTANT:
         This is NOT the full gradient-based selector from the paper.
@@ -245,9 +245,14 @@ class Agent:
                 if self.get_pos() < other.get_pos():
 
                     # Simulation approximation:
-                    # Choose a goal that is not currently assigned.
-                    occupied_goals = [a.goal for a in agents]
-                    free_goals = [q for q in Q if q not in occupied_goals]
+                    # Choose a goal that is not assigned among visible neighbors.
+                    #make the Agent uses local neighbor information only.
+                    neighbor_goals = [
+                        other.goal
+                        for other in agents
+                        if other.id != self.id and self.can_communicate(other)
+                    ]
+                    free_goals = [q for q in Q if q not in neighbor_goals]
 
                     if free_goals:
                         self.goal = random.choice(free_goals)
