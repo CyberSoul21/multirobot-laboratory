@@ -220,6 +220,7 @@ class Agent:
         messages. Here we use a simpler random/free-goal selection.
         """
 
+        return self.goal
 
 
 
