@@ -10,14 +10,36 @@ import random
 import math
 from matplotlib.animation import FuncAnimation
 
-# To show the system along the time
+# To show the system development along the time
 def update(frame):
-    simulation_step()
+    global prev_positions
+    global current_positions
+    step = (frame % substeps) / substeps
 
-    xs = [agent.get_pos()[0] for agent in A]
-    ys = [agent.get_pos()[1] for agent in A]
+    if frame % substeps == 0:
+        # To avoid iterating a lot to obtain the position
+        try:
+            current_positions
+        except:
+            prev_positions = [agent.get_pos() for agent in A]
+        else:
+            prev_positions = current_positions
+
+        simulation_step()
+        current_positions = [agent.get_pos() for agent in A]
+
+
+    xs = []
+    ys = []
     
-    points.set_data(xs, ys)
+    for (x0, y0), (x1, y1) in zip(prev_positions, current_positions):
+        x = x0 + (x1 - x0) * step
+        y = y0 + (y1 - y0) * step
+        xs.append(x)
+        ys.append(y)
+
+    points.set_offsets(np.c_[xs, ys])
+    points.set_color(colors)
     
     return points,
 
@@ -168,10 +190,13 @@ if __name__ == "__main__":
 
     # Display goals
     for qx, qy in Q:
-        ax.plot(qx, qy, 'bs', markersize=8, fillstyle='none')
+        ax.plot(qx, qy, 'gs', markersize=8, fillstyle='none')
 
     # Code to iterate over all agents at each time step
-    points, = ax.plot([], [], 'ro')
-    ani = FuncAnimation(fig, update, frames=Total_time, interval=500)
+    points = ax.scatter([], [])
+    colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents))  # un color por agente
+    # ani = FuncAnimation(fig, update, frames=Total_time, interval=500)
+    substeps = 10
+    ani = FuncAnimation(fig, update, frames=Total_time*substeps, interval=500/substeps)
     plt.show()
 
