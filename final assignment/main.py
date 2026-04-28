@@ -3,22 +3,21 @@
 # Alvaro Provencio, NIP: 960625
 # ----------------------------------------------
 
+from matplotlib.animation import FuncAnimation
 from matplotlib import pyplot as plt
 from Agent import Agent
 import numpy as np
 import random
 import math
-from matplotlib.animation import FuncAnimation
 
-# To show the system along the time
 def update(frame):
     simulation_step()
-
+    
     xs = [agent.get_pos()[0] for agent in A]
     ys = [agent.get_pos()[1] for agent in A]
     
-    points.set_data(xs, ys)
-    
+    points.set_offsets(np.c_[xs, ys])
+    points.set_color(colors)
     return points,
 
 # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -39,6 +38,8 @@ def simulation_step():
     # Move 
     for agent in A:
         agent.move()
+        # history[agent.id].append((agent.get_pos()))
+        history[agent.id].append(agent.get_pos())
 
 # It defines the goal positions for several formations 
 def target_location(shape, n, x_min, x_max, y_min, y_max):
@@ -121,12 +122,11 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
     return Q[:n]
 
 if __name__ == "__main__":
-
-
     # Defining initial components
     num_agents = 18
-    comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
-    Total_time = 20
+    comm_range = 4 * math.sqrt(2) # As defined in paper, where agent here is 1
+    Total_time = 50
+    shape =  "A" #"circle" "line" "A"
     # Here we do not define vm, we are considering all robots are able to move one step at each iteration
 
     # Grid 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1])) # I guess we will define an agent class
 
     # Targets
-    Q = target_location(shape="A", n=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+    Q = target_location(shape=shape, n=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
     # Agents have limited range, so they wouldn't know all the robots goal, so the algorithm assumes that some robots will
     # have same target and they will re arrange. So the targel location will be random, we wont distribute targets at all.
     for agent in A:
@@ -168,10 +168,46 @@ if __name__ == "__main__":
 
     # Display goals
     for qx, qy in Q:
-        ax.plot(qx, qy, 'bs', markersize=8, fillstyle='none')
+        ax.plot(qx, qy, 'gs', markersize=8, fillstyle='none')
 
     # Code to iterate over all agents at each time step
-    points, = ax.plot([], [], 'ro')
-    ani = FuncAnimation(fig, update, frames=Total_time, interval=500)
+    points = ax.scatter([], [])
+    colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
+    history = {agent.id: [agent.pos] for agent in A}
+    ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
+
     plt.show()
 
+
+    # Plot trayectories to show collision. 
+    # Right now we show evoulution on X and Y, which does not help at all
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    num_iter = len(next(iter(history.values())))
+    v_x = np.arange(num_iter)
+
+    ax1.set_title("Evolution of the x-coordinates")
+    ax2.set_title("Evolution of the y-coordinates")
+    ax1.set_ylabel("x-coordinate")
+    ax2.set_ylabel("y-coordinate")
+    ax2.set_xlabel("Iterations")
+
+    for agent in A:
+        traj = history[agent.id]
+
+        xk = [p[0] for p in traj]
+        yk = [p[1] for p in traj]
+
+        for ax, data in zip((ax1, ax2), (xk, yk)):
+
+            line, = ax.plot(v_x, data, marker='.')
+            c = line.get_color()
+            ax.plot(v_x[0],  data[0],  marker='x', color=c)
+            ax.plot(v_x[-1], data[-1], marker='o', color=c)
+
+        ax1.text(v_x[0], xk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[0], yk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax1.text(v_x[-1], xk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[-1], yk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+
+    plt.tight_layout()
+    plt.show()
