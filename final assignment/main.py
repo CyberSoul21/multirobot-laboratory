@@ -3,12 +3,12 @@
 # Alvaro Provencio, NIP: 960625
 # ----------------------------------------------
 
+from matplotlib.animation import FuncAnimation
 from matplotlib import pyplot as plt
 from Agent import Agent
 import numpy as np
 import random
 import math
-from matplotlib.animation import FuncAnimation
 
 # To show the system development along the time
 def update(frame):
@@ -28,7 +28,6 @@ def update(frame):
         simulation_step()
         current_positions = [agent.get_pos() for agent in A]
 
-
     xs = []
     ys = []
     
@@ -40,7 +39,6 @@ def update(frame):
 
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
-    
     return points,
 
 # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -143,12 +141,11 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
     return Q[:n]
 
 if __name__ == "__main__":
-
-
     # Defining initial components
     num_agents = 18
     comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
-    Total_time = 20
+    Total_time = 50
+    shape =  "A" #"circle" "line" "A"
     # Here we do not define vm, we are considering all robots are able to move one step at each iteration
 
     # Grid 
@@ -171,7 +168,7 @@ if __name__ == "__main__":
         A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1])) # I guess we will define an agent class
 
     # Targets
-    Q = target_location(shape="A", n=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+    Q = target_location(shape=shape, n=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
     # Agents have limited range, so they wouldn't know all the robots goal, so the algorithm assumes that some robots will
     # have same target and they will re arrange. So the targel location will be random, we wont distribute targets at all.
     for agent in A:

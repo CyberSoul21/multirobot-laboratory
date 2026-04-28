@@ -4,172 +4,80 @@ import random
 
 class Agent:
     def __init__(self, id, comm_range, posx=0, posy=0):
-        """
-        PAPER CONNECTION:
-        Implements the agent model from Section II-A.
-
-        Each agent has:
-        - an identifier
-        - a position in the global reference frame
-        - a communication range R
-        - a current assigned target T_i
-        - a claimed waypoint wp
-        """
-
         self.id = id
         self.x = posx
         self.y = posy
         self.comm_range = comm_range
-
-        self.neighbors = []
-        # PAPER: T_ai(t)
-        # Current assigned target position of the agent.
         self.goal = None
 
-        # PAPER: next_step
-        # The waypoint the robot wants to move to next.
-        self.next_pos = (posx, posy)
+        self.neighbors = []
 
-        # PAPER: wp
-        # The waypoint currently claimed by the robot.
-        self.claimed_wp = (posx, posy)
+        self.next_wp = (posx, posy)
+        self.actual_wp = (posx, posy)
 
     def __str__(self):
-        """
-        Utility function.
-
-        Not part of the paper algorithm.
-        Used only for debugging and printing robot state.
-        """
-
         return (
             f"Robot {self.id} -> "
             f"pos=({self.x:.2f}, {self.y:.2f}), "
             f"goal={self.goal}"
         )
 
-    # ***********************************************************
+
     # Position methods
-    # ***********************************************************
-
     def set_pos(self, x, y):
-        """
-        PAPER CONNECTION:
-        Updates p_ai(t), the position of agent a_i.
-
-        Also updates the claimed waypoint wp because, after movement,
-        the robot is assumed to occupy/claim its new grid position.
-        """
-
+        # Updates current position and waypoint
         self.x = x
         self.y = y
-        self.claimed_wp = (x, y)
+        self.actual_wp = (x, y)
 
     def get_pos(self):
-        """
-        PAPER CONNECTION:
-        Returns p_ai(t), the current position of the agent
-        in the global coordinate frame.
-        """
-
         return self.x, self.y
+    
+    def get_next_wp(self):
+        return self.next_wp
 
     def set_goal(self, goal):
-        """
-        PAPER CONNECTION:
-        Sets T_ai(t), the current assigned target of the agent.
-
-        This corresponds to the assignment part of the algorithm.
-        """
-
         self.goal = goal
 
     def get_goal(self):
-        """
-        PAPER CONNECTION:
-        Returns T_ai(t), the current assigned target.
-        """
-
         return self.goal
 
     def setNeighbors(self,neighbors):
         self.neighbors = neighbors
-        
-    # ***********************************************************
+
+
     # Distance / communication
-    # ***********************************************************
     def distance_to(self, other):
-        """
-        PAPER CONNECTION:
-        Implements the communication-neighborhood condition.
-
-        In the paper, agent a_j is a neighbor of a_i if:
-
-            ||p_ai(t) - p_aj(t)|| <= R
-
-        This function computes the Euclidean distance between two agents.
-        """
-
+        # Computes Euclidean distance
         ox, oy = other.get_pos()
         return math.sqrt((self.x - ox) ** 2 + (self.y - oy) ** 2)
 
     def can_communicate(self, other):
-        """
-        PAPER CONNECTION:
-        Implements the local communication range R.
-
-        If this returns True, the other robot belongs to the local
-        neighborhood N_ai(t).
-        """
-
         return self.distance_to(other) <= self.comm_range
 
     def manhattan_distance(self, p1, p2):
-        """
-        PAPER CONNECTION:
-        Implements the grid distance used in the paper.
-
-        The paper uses Manhattan distance because robots move on a
-        discrete grid using north, south, east, west, or wait actions.
-        """
-
+        # Computes Manhattan distance
         return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
-    # ***********************************************************
+    def lex_greater(self, pos_a, pos_b):
+        # Returns true if pos_a is lex greater than pos_b
+        if pos_a[0] != pos_b[0]:
+            return pos_a[0] > pos_b[0]
+        return pos_a[1] > pos_b[1]
+
     # Movement planner
-    # ***********************************************************
     def motion_planner(self, x_min, x_max, y_min, y_max):
-        """
-        PAPER CONNECTION:
-        Simplified implementation of the Motion Planning module
-        from Section III-A.
-
-        Paper idea:
-        - Convert continuous space into a discrete grid.
-        - At each waypoint, an agent has five possible actions:
-          north, east, south, west, wait.
-        - The agent greedily chooses the action that reduces
-          Manhattan distance to its assigned goal.
-
-        This function implements ONLY the greedy next-step selection.
-
-        IMPORTANT:
-        The collision-free checks from the paper are NOT implemented here.
-        They should be implemented in main.py, because collision checking
-        requires comparing all agents' proposed movements.
-        """
-
+        
+        # Esto creo que no hace falta, siempre va a tener goal 
         if self.goal is None:
-            # PAPER: If no goal is assigned, the robot cannot plan motion.
-            # Simulation choice: wait in place.
-            self.next_pos = self.get_pos()
-            return self.next_pos
+            self.next_wp = self.actual_wp
+            return
 
-        current_pos = self.get_pos()
-        x, y = current_pos
+        # current_pos = self.get_pos()
+        # x, y = current_pos
+        x, y = self.actual_wp
 
-        # PAPER: possible grid actions:
-        # north, east, south, west, wait
+        # Possible actions inside the grid: north, east, south, west, wait
         candidates = [
             (x + 1, y),  # east
             (x - 1, y),  # west
@@ -178,34 +86,56 @@ class Agent:
             (x, y),      # wait
         ]
 
-        # Keep only candidates inside the grid.
-        # This is a simulation boundary constraint.
+        # Grid boundary constraint.
         valid_candidates = []
         for px, py in candidates:
             if x_min <= px <= x_max and y_min <= py <= y_max:
                 valid_candidates.append((px, py))
 
-        # PAPER: choose the action that greedily reduces
-        # Manhattan distance to the goal.
+        # Greedy action
         best_pos = min(
             valid_candidates,
             key=lambda p: self.manhattan_distance(p, self.goal)
         )
 
-        # PAPER: next_step variable.
-        self.next_pos = best_pos
-        return self.next_pos
+        self.next_wp = best_pos
+
 
 
     def move(self):
-        x, y = self.next_pos
+        valid_movement = True
+        for neighbor in self.neighbors:
+            # neighbor_wp = neighbor.get_actual_wp()
+            neighbor_wp = neighbor.get_pos()
+            neighbor_next_wp = neighbor.get_next_wp()
+
+            # Constraint III-A.1a Neighbor is in next wp
+            if self.next_wp == neighbor_wp:
+                valid_movement = False
+                break
+
+            # Constraint III-A.1b Only moves lexicographically greater to next_wp
+            if self.next_wp == neighbor_next_wp:
+                if not self.lex_greater(self.actual_wp, neighbor_wp):
+                    valid_movement = False
+                    break
+
+            # Constraint III-A.2 Do not travel same edge
+            # Right now this cannot happen because the process is not concurrent as in the paper
+            if self.next_wp == neighbor_wp and self.actual_wp == neighbor_next_wp:
+                valid_movement = False
+                break
+
+        # Final action
+        if valid_movement:
+            x, y = self.next_wp
+        else: 
+            x, y = self.actual_wp # wait
+
         self.set_pos(x, y)
 
 
-    # ***********************************************************
     # Goal selector
-    # ***********************************************************
-
     def goal_selector(self, agents, Q):
         """
         PAPER CONNECTION:
@@ -264,9 +194,7 @@ class Agent:
 
         return self.goal
 
-    # -----------------------------
     # Local task swapping
-    # -----------------------------
     def try_goal_swap(self, other, beta=0.1):
         """
         PAPER CONNECTION:
