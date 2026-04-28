@@ -10,33 +10,12 @@ import numpy as np
 import random
 import math
 
-# To show the system development along the time
 def update(frame):
-    global prev_positions
-    global current_positions
-    step = (frame % substeps) / substeps
-
-    if frame % substeps == 0:
-        # To avoid iterating a lot to obtain the position
-        try:
-            current_positions
-        except:
-            prev_positions = [agent.get_pos() for agent in A]
-        else:
-            prev_positions = current_positions
-
-        simulation_step()
-        current_positions = [agent.get_pos() for agent in A]
-
-    xs = []
-    ys = []
+    simulation_step()
     
-    for (x0, y0), (x1, y1) in zip(prev_positions, current_positions):
-        x = x0 + (x1 - x0) * step
-        y = y0 + (y1 - y0) * step
-        xs.append(x)
-        ys.append(y)
-
+    xs = [agent.get_pos()[0] for agent in A]
+    ys = [agent.get_pos()[1] for agent in A]
+    
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
     return points,
@@ -193,11 +172,10 @@ if __name__ == "__main__":
 
     # Code to iterate over all agents at each time step
     points = ax.scatter([], [])
-    colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents))  # un color por agente
-    # ani = FuncAnimation(fig, update, frames=Total_time, interval=500)
-    substeps = 10
-    history = {agent.id: [(agent.x, agent.y)] for agent in A}
-    ani = FuncAnimation(fig, update, frames=Total_time*substeps, interval=500/substeps)
+    colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
+    history = {agent.id: [agent.pos] for agent in A}
+    ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
+
     plt.show()
 
 

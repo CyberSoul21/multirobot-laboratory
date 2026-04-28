@@ -5,34 +5,37 @@ import random
 class Agent:
     def __init__(self, id, comm_range, posx=0, posy=0):
         self.id = id
-        self.x = posx
-        self.y = posy
+        self.pos = (posx, posy)
+        self.actual_wp = (posx, posy)
+        self.next_wp = (posx, posy)
         self.comm_range = comm_range
         self.goal = None
-
         self.neighbors = []
-
-        self.next_wp = (posx, posy)
-        self.actual_wp = (posx, posy)
 
     def __str__(self):
         return (
             f"Robot {self.id} -> "
-            f"pos=({self.x:.2f}, {self.y:.2f}), "
+            f"pos=({self.pos}), "
             f"goal={self.goal}"
         )
 
 
     # Position methods
     def set_pos(self, x, y):
-        # Updates current position and waypoint
-        self.x = x
-        self.y = y
-        self.actual_wp = (x, y)
-
+        self.pos = (x, y)
+        
     def get_pos(self):
-        return self.x, self.y
+        return self.pos
     
+    def set_actual_wp(self, x, y):
+        self.actual_wp = (x, y)
+    
+    def get_actual_wp(self):
+        return self.actual_wp
+    
+    def set_next_wp(self, x, y):
+        self.next_wp = (x, y)
+
     def get_next_wp(self):
         return self.next_wp
 
@@ -50,7 +53,8 @@ class Agent:
     def distance_to(self, other):
         # Computes Euclidean distance
         ox, oy = other.get_pos()
-        return math.sqrt((self.x - ox) ** 2 + (self.y - oy) ** 2)
+        pos_x, pos_y = self.pos
+        return math.sqrt((pos_x - ox) ** 2 + (pos_y - oy) ** 2)
 
     def can_communicate(self, other):
         return self.distance_to(other) <= self.comm_range
@@ -68,69 +72,78 @@ class Agent:
     # Movement planner
     def motion_planner(self, x_min, x_max, y_min, y_max):
         
-        # Esto creo que no hace falta, siempre va a tener goal 
-        if self.goal is None:
-            self.next_wp = self.actual_wp
-            return
+        # # Esto creo que no hace falta, siempre va a tener goal 
+        # if self.goal is None:
+        #     self.next_wp = self.actual_wp
+        #     return
+        pos_x, pos_y = self.get_pos()
 
-        # current_pos = self.get_pos()
-        # x, y = current_pos
-        x, y = self.actual_wp
+        on_waypoint = (abs(pos_x - round(pos_x)) < 1e-9 and 
+                   abs(pos_y - round(pos_y)) < 1e-9)
+        
+        if on_waypoint:
+            self.set_actual_wp(round(pos_x), round(pos_y))
 
-        # Possible actions inside the grid: north, east, south, west, wait
-        candidates = [
-            (x + 1, y),  # east
-            (x - 1, y),  # west
-            (x, y + 1),  # north
-            (x, y - 1),  # south
-            (x, y),      # wait
-        ]
+            # A lo mejor conviene sacarlo
+            x, y = self.get_actual_wp()
 
-        # Grid boundary constraint.
-        valid_candidates = []
-        for px, py in candidates:
-            if x_min <= px <= x_max and y_min <= py <= y_max:
-                valid_candidates.append((px, py))
+            # Possible actions inside the grid: north, east, south, west, wait
+            candidates = [
+                (x + 1, y),  # east
+                (x - 1, y),  # west
+                (x, y + 1),  # north
+                (x, y - 1),  # south
+                (x, y),      # wait
+            ]
 
-        # Greedy action
-        best_pos = min(
-            valid_candidates,
-            key=lambda p: self.manhattan_distance(p, self.goal)
-        )
+            # Grid boundary constraint.
+            valid_candidates = []
+            for px, py in candidates:
+                if x_min <= px <= x_max and y_min <= py <= y_max:
+                    valid_candidates.append((px, py))
 
-        self.next_wp = best_pos
+            # Greedy action
+            best_pos = min(
+                valid_candidates,
+                key=lambda p: self.manhattan_distance(p, self.goal)
+            )
 
-
+            self.next_wp = best_pos
 
     def move(self):
         valid_movement = True
         for neighbor in self.neighbors:
-            # neighbor_wp = neighbor.get_actual_wp()
-            neighbor_wp = neighbor.get_pos()
+            neighbor_pos = neighbor.get_pos()
+            neighbor_actual_wp = neighbor.get_actual_wp()
             neighbor_next_wp = neighbor.get_next_wp()
 
             # Constraint III-A.1a Neighbor is in next wp
-            if self.next_wp == neighbor_wp:
+            # if self.next_wp == neighbor_pos: # Siento que tendría que ser así, pero no da 
+            if self.next_wp == neighbor_actual_wp: # Así si va 
                 valid_movement = False
                 break
 
             # Constraint III-A.1b Only moves lexicographically greater to next_wp
             if self.next_wp == neighbor_next_wp:
-                if not self.lex_greater(self.actual_wp, neighbor_wp):
+                if not self.lex_greater(self.actual_wp, neighbor_actual_wp):
                     valid_movement = False
                     break
 
             # Constraint III-A.2 Do not travel same edge
             # Right now this cannot happen because the process is not concurrent as in the paper
-            if self.next_wp == neighbor_wp and self.actual_wp == neighbor_next_wp:
+            if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
                 valid_movement = False
                 break
 
         # Final action
         if valid_movement:
-            x, y = self.next_wp
+            next_wp_x, next_wp_y = self.next_wp
+            actual_wp_x, actual_wp_y = self.actual_wp
+            pos_x, pos_y = self.pos
+            x = pos_x + 0.1*(next_wp_x-actual_wp_x)
+            y = pos_y + 0.1*(next_wp_y-actual_wp_y)
         else: 
-            x, y = self.actual_wp # wait
+            x, y = self.get_pos() # wait
 
         self.set_pos(x, y)
 
@@ -249,3 +262,7 @@ class Agent:
             return True
 
         return False    
+    
+
+if __name__ == "__main__":
+    print(3.01 % 1)
