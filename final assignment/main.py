@@ -59,6 +59,8 @@ def simulation_step():
     # Move 
     for agent in A:
         agent.move()
+        # history[agent.id].append((agent.get_pos()))
+        history[agent.id].append(agent.get_pos())
 
 # It defines the goal positions for several formations 
 def target_location(shape, n, x_min, x_max, y_min, y_max):
@@ -143,7 +145,7 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
 if __name__ == "__main__":
     # Defining initial components
     num_agents = 18
-    comm_range = 4 * math.sqrt(2) # As defined in paper, where r here is 1
+    comm_range = 4 * math.sqrt(2) # As defined in paper, where agent here is 1
     Total_time = 50
     shape =  "A" #"circle" "line" "A"
     # Here we do not define vm, we are considering all robots are able to move one step at each iteration
@@ -194,6 +196,40 @@ if __name__ == "__main__":
     colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents))  # un color por agente
     # ani = FuncAnimation(fig, update, frames=Total_time, interval=500)
     substeps = 10
+    history = {agent.id: [(agent.x, agent.y)] for agent in A}
     ani = FuncAnimation(fig, update, frames=Total_time*substeps, interval=500/substeps)
     plt.show()
 
+
+    # Plot trayectories to show collision. 
+    # Right now we show evoulution on X and Y, which does not help at all
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    num_iter = len(next(iter(history.values())))
+    v_x = np.arange(num_iter)
+
+    ax1.set_title("Evolution of the x-coordinates")
+    ax2.set_title("Evolution of the y-coordinates")
+    ax1.set_ylabel("x-coordinate")
+    ax2.set_ylabel("y-coordinate")
+    ax2.set_xlabel("Iterations")
+
+    for agent in A:
+        traj = history[agent.id]
+
+        xk = [p[0] for p in traj]
+        yk = [p[1] for p in traj]
+
+        for ax, data in zip((ax1, ax2), (xk, yk)):
+
+            line, = ax.plot(v_x, data, marker='.')
+            c = line.get_color()
+            ax.plot(v_x[0],  data[0],  marker='x', color=c)
+            ax.plot(v_x[-1], data[-1], marker='o', color=c)
+
+        ax1.text(v_x[0], xk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[0], yk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax1.text(v_x[-1], xk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+        ax2.text(v_x[-1], yk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
+
+    plt.tight_layout()
+    plt.show()
