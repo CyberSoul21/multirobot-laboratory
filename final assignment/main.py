@@ -192,6 +192,7 @@ if __name__ == "__main__":
     ax2.set_xlabel("Iterations")
 
     for agent in A:
+        print(agent)
         traj = history[agent.id]
 
         xk = [p[0] for p in traj]

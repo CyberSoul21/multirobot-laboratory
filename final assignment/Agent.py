@@ -70,24 +70,18 @@ class Agent:
         return pos_a[1] > pos_b[1]
 
     # Movement planner
+    def is_at_waypoint(self, pos, wp, tol=1e-9):
+        return abs(pos[0] - wp[0]) < tol and abs(pos[1] - wp[1]) < tol
+    
     def motion_planner(self, x_min, x_max, y_min, y_max):
         
-        # # Esto creo que no hace falta, siempre va a tener goal 
-        # if self.goal is None:
-        #     self.next_wp = self.actual_wp
-        #     return
-        pos_x, pos_y = self.get_pos()
-
-        on_waypoint = (abs(pos_x - round(pos_x)) < 1e-9 and 
-                   abs(pos_y - round(pos_y)) < 1e-9)
-        
-        if on_waypoint:
+        # This is computed when an agent is at a waypoint
+        if self.is_at_waypoint(self.pos, self.next_wp):
+            pos_x, pos_y = self.pos
             self.set_actual_wp(round(pos_x), round(pos_y))
 
-            # A lo mejor conviene sacarlo
-            x, y = self.get_actual_wp()
-
             # Possible actions inside the grid: north, east, south, west, wait
+            x, y = self.get_actual_wp()
             candidates = [
                 (x + 1, y),  # east
                 (x - 1, y),  # west
@@ -111,6 +105,8 @@ class Agent:
             self.next_wp = best_pos
 
     def move(self):
+
+        # This is replicating the communication before movement
         valid_movement = True
         for neighbor in self.neighbors:
             neighbor_pos = neighbor.get_pos()
@@ -118,8 +114,7 @@ class Agent:
             neighbor_next_wp = neighbor.get_next_wp()
 
             # Constraint III-A.1a Neighbor is in next wp
-            # if self.next_wp == neighbor_pos: # Siento que tendría que ser así, pero no da 
-            if self.next_wp == neighbor_actual_wp: # Así si va 
+            if self.is_at_waypoint(neighbor_pos, self.next_wp):
                 valid_movement = False
                 break
 
