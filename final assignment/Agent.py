@@ -114,7 +114,8 @@ class Agent:
             neighbor_next_wp = neighbor.get_next_wp()
 
             # Constraint III-A.1a Neighbor is in next wp
-            if self.is_at_waypoint(neighbor_pos, self.next_wp):
+            if self.is_at_waypoint(neighbor_pos, self.next_wp): # Es posible que aquí se pare en el 0.9, mostrando en el plot como que chocan ñ
+            # if self.next_wp == neighbor_actual_wp: #Esta es la otra opción.   
                 valid_movement = False
                 break
 
