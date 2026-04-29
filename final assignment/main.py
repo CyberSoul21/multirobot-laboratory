@@ -18,6 +18,7 @@ def update(frame):
     
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
+    # points.set_sizes([100]) # A lo mejor queremos que el tamaño del robot sea acorde a la l ñ
     return points,
 
 # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -192,6 +193,7 @@ if __name__ == "__main__":
     ax2.set_xlabel("Iterations")
 
     for agent in A:
+        print(agent)
         traj = history[agent.id]
 
         xk = [p[0] for p in traj]
