@@ -1,7 +1,6 @@
 import math
 import random
 
-
 class Agent:
     def __init__(self, id, comm_range, posx=0, posy=0):
         self.id = id
@@ -16,10 +15,9 @@ class Agent:
         x, y = self.pos
         return (
             f"Robot {self.id} -> "
-            f"pos=({x:.2f, y:.2f}), "
+            f"pos=({x:.2f}, {y:.2f}), "
             f"goal={self.goal}"
         )
-
 
     # Position methods
     def set_pos(self, x, y):
@@ -106,16 +104,14 @@ class Agent:
             self.next_wp = best_pos
 
     def move(self):
-
         # This is replicating the communication before movement
         valid_movement = True
         for neighbor in self.neighbors:
-            neighbor_pos = neighbor.get_pos()
             neighbor_actual_wp = neighbor.get_actual_wp()
             neighbor_next_wp = neighbor.get_next_wp()
 
             # Constraint III-A.1a Neighbor is in next wp
-            if self.next_wp == neighbor_actual_wp: #Esta es la otra opción.   
+            if self.next_wp == neighbor_actual_wp:
                 valid_movement = False
                 break
 
@@ -126,7 +122,6 @@ class Agent:
                     break
 
             # Constraint III-A.2 Do not travel same edge
-            # Right now this cannot happen because the process is not concurrent as in the paper
             if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
                 valid_movement = False
                 break
@@ -261,4 +256,4 @@ class Agent:
     
 
 if __name__ == "__main__":
-    print(3.01 % 1)
+    print("test")
