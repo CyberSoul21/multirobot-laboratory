@@ -1,0 +1,14 @@
+# Carpetas
+bin/
+build/
+dist/
+
+
+# Python
+__pycache__/
+*.pyc
+
+# Visual Studio / C#
+.vs/
+*.user
+*.suo
