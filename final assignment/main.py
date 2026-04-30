@@ -8,17 +8,27 @@ from matplotlib import pyplot as plt
 from Agent import Agent
 import numpy as np
 import random
-import math
 
 def update(frame):
+    # Time step with all the actions 
     simulation_step()
+
+    # To plot the number of achieved goals along time
+    num_goals = 0
+    for agent in A:
+        x,y = agent.get_pos()
+        gol_x,gol_y = agent.get_goal()
+        if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
+            num_goals = num_goals + 1        
+    achieved_goals.append(num_goals)            
     
+    # Point plot
     xs = [agent.get_pos()[0] for agent in A]
     ys = [agent.get_pos()[1] for agent in A]
-    
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
-    points.set_sizes([150])
+    # points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
+    points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
     return points,
 
 # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -41,102 +51,89 @@ def simulation_step():
         agent.move()
         history[agent.id].append(agent.get_pos())
 
-# It defines the goal positions for several formations 
-def target_location(shape, n, x_min, x_max, y_min, y_max):
-    Q = []
+# It defines the goal positions for the letter A
+def generate_H(x_min, x_max, y_min, y_max, n_points):
+    # Adjust grid
+    cx = (x_min + x_max) / 2
+    cy = (y_min + y_max) / 2
+    grid_w = x_max - x_min
+    grid_h = y_max - y_min
 
-    if shape == "circle":
-        cx = (x_min + x_max) / 2
-        cy = (y_min + y_max) / 2
-        radius = min(x_max - x_min, y_max - y_min) / 3
+    # H has 3 arms
+    half_h = grid_h * 0.40   
+    arm_x  = grid_w * 0.20   
+    bar_hw = arm_x * 0.55    
+    leg_len = 2 * half_h
+    bar_len = 2 * bar_hw
+    total_len = 2 * leg_len + bar_len
+    n_leg_l = max(2, round(n_points * leg_len / total_len))
+    n_leg_r = max(2, round(n_points * leg_len / total_len))
+    n_bar   = max(2, n_points - n_leg_l - n_leg_r)
 
-        samples = max(10 * n, 100)
-        angles = np.linspace(0, 2 * math.pi, samples, endpoint=False)
+    # Makes the shape smoother
+    def snap(pts):
+        snapped = set()
+        for x, y in pts:
+            sx = int(round(x))
+            sy = int(round(y))
+            sx = max(x_min, min(x_max, sx))
+            sy = max(y_min, min(y_max, sy))
+            snapped.add((sx, sy))
+        return sorted(snapped)
 
-        for theta in angles:
-            x = round(cx + radius * math.cos(theta))
-            y = round(cy + radius * math.sin(theta))
+    # Builds each arm
+    left_x  = cx - arm_x
+    ys_l = np.linspace(cy - half_h, cy + half_h, n_leg_l)
+    leg_left = snap([(left_x, y) for y in ys_l])
 
-            p = (x, y)
+    right_x = cx + arm_x
+    ys_r = np.linspace(cy - half_h, cy + half_h, n_leg_r)
+    leg_right = snap([(right_x, y) for y in ys_r])
 
-            if (
-                x_min <= x <= x_max
-                and y_min <= y <= y_max
-                and p not in Q
-            ):
-                Q.append(p)
+    xs_b = np.linspace(cx - bar_hw, cx + bar_hw, n_bar)
+    bar = snap([(x, cy) for x in xs_b])
 
-            if len(Q) == n:
+    all_points = list(dict.fromkeys(leg_left + leg_right + bar))
+
+    # In case they are not defined all the goals
+    if len(all_points) < n_points:
+        i = 0
+        while len(all_points) < n_points:
+            p = all_points[i % len(all_points)]
+
+            # Expand locally
+            candidates = [
+                (p[0] + 1, p[1]),
+                (p[0] - 1, p[1]),
+                (p[0], p[1] + 1),
+                (p[0], p[1] - 1),
+            ]
+
+            for c in candidates:
+                c = (max(x_min, min(x_max, c[0])),
+                     max(y_min, min(y_max, c[1])))
+                if c not in all_points:
+                    all_points.append(c)
+                    if len(all_points) == n_points:
+                        break
+            i += 1
+            # Check anti-loop
+            if i > 100000:
                 break
 
-    elif shape == "A":
-        raw_points = [
-            (5, 9),
-            (4, 8), (6, 8),
-            (3, 7), (7, 7),
-            (3, 6), (7, 6),
-            (3, 5), (4, 5), (5, 5), (6, 5), (7, 5),
-            (3, 4), (7, 4),
-            (3, 3), (7, 3),
-            (3, 2), (7, 2),
-        ]
-
-        for p in raw_points:
-            x, y = p
-            if (
-                x_min <= x <= x_max
-                and y_min <= y <= y_max
-                and p not in Q
-            ):
-                Q.append(p)
-
-            if len(Q) == n:
-                break
-
-    elif shape == "line":
-        cx = (x_min + x_max) // 2
-        available_y = list(range(y_min, y_max + 1))
-
-        if n > len(available_y):
-            raise ValueError(
-                f"Line shape needs {n} targets, but only "
-                f"{len(available_y)} vertical grid cells are available."
-            )
-
-        indices = np.linspace(0, len(available_y) - 1, n, dtype=int)
-
-        for i in indices:
-            p = (cx, available_y[i])
-            if p not in Q:
-                Q.append(p)
-
-    else:
-        raise ValueError("Unknown shape. Use: circle, A, line")
-
-    if len(Q) < n:
-        raise ValueError(
-            f"Only generated {len(Q)} unique targets. "
-            f"Increase grid size, reduce num_agents, or use another shape."
-        )
-
-    return Q[:n]
+    return all_points
 
 if __name__ == "__main__":
     # Defining initial components
-    num_agents = 18
-    # comm_range = 4 * math.sqrt(2) # As defined in paper, where agent here is 1
-    comm_range = 2.5
+    num_agents = 20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
+    comm_range = 2.5 # l is 1 unit, R (comm_range) needs to be > 2*l, Agent radius is expected to be < l/(2*sqrt(2))
     Total_time = 50
-    shape =  "A" #"circle" "line" "A"
-    # Here we do not define vm, we are considering all robots are able to move one step at each iteration
+    grid_size = 10
 
     # Grid 
-    x_min, x_max = 0 , 10
-    y_min, y_max = 0 , 10
-    Nx, Ny = 11, 11
-    # x_min, x_max = 0 , 100
-    # y_min, y_max = 0 , 100
-    # Nx, Ny = 101, 101
+    x_min, x_max = 0 , grid_size
+    y_min, y_max = 0 , grid_size
+    Nx, Ny = x_max + 1 , y_max + 1
     x = np.linspace(x_min, x_max, Nx)
     y = np.linspace(y_min, y_max, Ny)
     X, Y = np.meshgrid(x, y) 
@@ -147,10 +144,13 @@ if __name__ == "__main__":
     # Agents
     A = [] # set of agents
     for a in range(num_agents):
-        A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1])) # I guess we will define an agent class
+        A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1]))
 
     # Targets
-    Q = target_location(shape=shape, n=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+    Q = generate_H(n_points=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+
+    print("Number of agents:",len(A))
+    print("Number of goals:", len(Q))
     # Agents have limited range, so they wouldn't know all the robots goal, so the algorithm assumes that some robots will
     # have same target and they will re arrange. So the targel location will be random, we wont distribute targets at all.
     for agent in A:
@@ -169,47 +169,24 @@ if __name__ == "__main__":
 
     # Display goals
     for qx, qy in Q:
-        ax.plot(qx, qy, 'gs', markersize=16, fillstyle='none')
+        ax.plot(qx, qy, 'gs', markersize=300/(1.5*grid_size), fillstyle='none')
 
     # Code to iterate over all agents at each time step
     points = ax.scatter([], [])
+    achieved_goals = []
     colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
     history = {agent.id: [agent.pos] for agent in A}
     ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
-
     plt.show()
 
-
-    # Plot trayectories to show collision. 
-    # Right now we show evoulution on X and Y, which does not help at all
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    num_iter = len(next(iter(history.values())))
-    v_x = np.arange(num_iter)
-
-    ax1.set_title("Evolution of the x-coordinates")
-    ax2.set_title("Evolution of the y-coordinates")
-    ax1.set_ylabel("x-coordinate")
-    ax2.set_ylabel("y-coordinate")
-    ax2.set_xlabel("Iterations")
-
+    # To show final positions and goals achieved
     for agent in A:
         print(agent)
-        traj = history[agent.id]
 
-        xk = [p[0] for p in traj]
-        yk = [p[1] for p in traj]
-
-        for ax, data in zip((ax1, ax2), (xk, yk)):
-
-            line, = ax.plot(v_x, data, marker='.')
-            c = line.get_color()
-            ax.plot(v_x[0],  data[0],  marker='x', color=c)
-            ax.plot(v_x[-1], data[-1], marker='o', color=c)
-
-        ax1.text(v_x[0], xk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
-        ax2.text(v_x[0], yk[0], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
-        ax1.text(v_x[-1], xk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
-        ax2.text(v_x[-1], yk[-1], f'{agent.id}', fontsize=8, ha='right', va='bottom', color=c)
-
-    plt.tight_layout()
-    plt.show()
+    plt.figure()
+    plt.plot(achieved_goals)
+    plt.xlabel("Time")
+    plt.ylabel("Number of achieved goals")
+    plt.title("Goals achieved over time")
+    plt.grid()
+    plt.show()       
