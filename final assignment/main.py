@@ -18,7 +18,7 @@ def update(frame):
     
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
-    # points.set_sizes([100]) # A lo mejor queremos que el tamaño del robot sea acorde a la l ñ
+    points.set_sizes([150])
     return points,
 
 # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -39,7 +39,6 @@ def simulation_step():
     # Move 
     for agent in A:
         agent.move()
-        # history[agent.id].append((agent.get_pos()))
         history[agent.id].append(agent.get_pos())
 
 # It defines the goal positions for several formations 
@@ -125,7 +124,8 @@ def target_location(shape, n, x_min, x_max, y_min, y_max):
 if __name__ == "__main__":
     # Defining initial components
     num_agents = 18
-    comm_range = 4 * math.sqrt(2) # As defined in paper, where agent here is 1
+    # comm_range = 4 * math.sqrt(2) # As defined in paper, where agent here is 1
+    comm_range = 2.5
     Total_time = 50
     shape =  "A" #"circle" "line" "A"
     # Here we do not define vm, we are considering all robots are able to move one step at each iteration
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     # Display goals
     for qx, qy in Q:
-        ax.plot(qx, qy, 'gs', markersize=8, fillstyle='none')
+        ax.plot(qx, qy, 'gs', markersize=16, fillstyle='none')
 
     # Code to iterate over all agents at each time step
     points = ax.scatter([], [])
