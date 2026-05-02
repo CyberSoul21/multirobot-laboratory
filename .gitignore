@@ -1,16 +1,21 @@
-# Carpetas
+# ===== Build =====
 bin/
 build/
 dist/
 
-
-# Python
+# ===== Python =====
 __pycache__/
 *.pyc
-/__pycache__/
-final\ assignment/__pycache__/
-# Visual Studio / C#
+
+# ===== IDE =====
+.vscode/
 .vs/
 *.user
 *.suo
-.vscode/
+
+# ===== Sistema =====
+.DS_Store
+*~
+
+# ===== Archivos =====
+*.zip
