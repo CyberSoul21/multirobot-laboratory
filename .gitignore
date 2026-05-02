@@ -8,7 +8,7 @@ dist/
 __pycache__/
 *.pyc
 /__pycache__/
-
+final assignment/__pycache__/
 # Visual Studio / C#
 .vs/
 *.user
