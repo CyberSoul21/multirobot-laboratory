@@ -10,6 +10,10 @@ class Agent:
         self.comm_range = comm_range
         self.goal = None
         self.neighbors = []
+        self.validMovement_ = False
+        #Gradient
+        self.candidate_goal = None
+        self.hop = float("inf")
 
     def __str__(self):
         x, y = self.pos
@@ -20,6 +24,9 @@ class Agent:
         )
 
     # Position methods
+    def get_id(self):
+        return self.id
+    
     def set_pos(self, x, y):
         self.pos = (x, y)
         
@@ -118,17 +125,20 @@ class Agent:
             # Constraint III-A.1a Neighbor is in next wp
             if self.next_wp == neighbor_actual_wp:
                 valid_movement = False
+                print("SWAP 1 !")
                 break
 
             # Constraint III-A.1b Only moves lexicographically greater to next_wp
             if self.next_wp == neighbor_next_wp:
                 if not self.lex_greater(self.actual_wp, neighbor_actual_wp):
                     valid_movement = False
+                    print("SWAP 2 !")
                     break
 
             # Constraint III-A.2 Do not travel same edge
             if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
                 valid_movement = False
+                print("SWAP! 3 ")
                 break
 
         # Final action
@@ -142,66 +152,91 @@ class Agent:
             x, y = self.get_pos() # wait
 
         self.set_pos(x, y)
+        self.validMovement_ = valid_movement
 
 
     # Goal selector
+    # 
+    
     def goal_selector(self, agents, Q):
-        """
-        PAPER CONNECTION:
-        Simplified implementation of the New Goal Selector from Section III-B.
-
-        Paper idea:
-        - Because agents only have local information, two agents may hold the same goal.
-        - If two neighboring agents detect that they hold the same goal, one of them selects a new goal.
-        - The paper uses lexicographical order to decide which robot changes its goal.
-
-        This implementation:
-        - Detects duplicate goals only among communicating neighbors.
-        - The lexicographically smaller-position robot changes goal.
-        - It chooses a free target if one is globally visible in simulation.
-
-        IMPORTANT:
-        This is NOT the full gradient-based selector from the paper.
-        The paper propagates candidate unassigned goals using hop-count messages.
-        Here we use a simpler random/free-goal selection.
-        """
-
-        # Initialization: assign a random goal if none exists
         if self.goal is None:
             self.goal = random.choice(Q)
             return self.goal
+
+        # Always define this first
+        neighbor_goals = [
+            other.goal
+            for other in agents
+            if other.id != self.id and self.can_communicate(other)
+        ]
 
         for other in agents:
             if other.id == self.id:
                 continue
 
-            # Only consider local communication neighborhood
             if not self.can_communicate(other):
                 continue
 
-            # Duplicate-goal conflict
             if self.goal == other.goal:
-
-                # Lexicographical tie-breaking (based on position)
                 if self.get_pos() < other.get_pos():
 
-                    # Collect goals of neighbors
-                    neighbor_goals = [
-                        other.goal
-                        for other in agents
-                        if other.id != self.id and self.can_communicate(other)
-                    ]
-
-                    # Select free goals
-                    free_goals = [q for q in Q if q not in neighbor_goals]
-
-                    if free_goals:
-                        self.goal = random.choice(free_goals)
+                    if self.candidate_goal is not None:
+                        self.goal = self.candidate_goal
                     else:
-                        # Fallback: choose any goal randomly
-                        self.goal = random.choice(Q)
+                        free_goals = [q for q in Q if q not in neighbor_goals]
 
-        return self.goal
+                        if free_goals:
+                            self.goal = random.choice(free_goals)
+                        else:
+                            self.goal = random.choice(Q)
+
+        return self.goal    
+    
+    def update_gradient_candidate(self, Q):
+        """
+        PAPER CONNECTION:
+        Gradient-based selector from Section III-B.
+
+        This approximates the hop-count propagation mechanism:
+        - If the agent is near an apparently unassigned goal, it becomes an anchor.
+        - Anchor publishes that goal with hop = 0.
+        - Otherwise, the agent copies the best candidate_goal from neighbors
+        with the smallest hop count.
+        """
+
+        # Goals currently visible among local neighbors
+        neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
+
+        # Check if there is a locally unassigned goal one grid step away
+        local_unassigned_goals = []
+
+        for q in Q:
+            if q not in neighbor_goals:
+                if self.manhattan_distance(self.get_actual_wp(), q) == 1:
+                    local_unassigned_goals.append(q)
+
+        # Anchor case
+        if local_unassigned_goals:
+            self.candidate_goal = random.choice(local_unassigned_goals)
+            self.hop = 0
+            return
+
+        # Common-agent case: receive best candidate from neighbors
+        best_neighbor = None
+        best_hop = float("inf")
+
+        for neighbor in self.neighbors:
+            if neighbor.candidate_goal is not None and neighbor.hop < best_hop:
+                best_neighbor = neighbor
+                best_hop = neighbor.hop
+
+        if best_neighbor is not None:
+            self.candidate_goal = best_neighbor.candidate_goal
+            self.hop = best_neighbor.hop + 1
+        else:
+            self.candidate_goal = None
+            self.hop = float("inf")
+
 
     # Local task swapping
     def try_goal_swap(self, other, beta=0.1):

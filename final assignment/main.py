@@ -25,6 +25,7 @@ def update(frame):
     # Point plot
     xs = [agent.get_pos()[0] for agent in A]
     ys = [agent.get_pos()[1] for agent in A]
+
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
     # points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
@@ -40,6 +41,10 @@ def simulation_step():
             if(neighbor is not agent and agent.can_communicate(neighbor)):
                 neighbors.append(neighbor)
         agent.setNeighbors(neighbors = neighbors)
+
+    # Gradient propagation
+    for agent in A:
+        agent.update_gradient_candidate(Q)        
 
     # Think (Reorganize goal and plan next waypoint)
     for agent in A:
