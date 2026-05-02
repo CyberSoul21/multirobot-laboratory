@@ -103,6 +103,11 @@ class Agent:
 
             self.next_wp = best_pos
 
+    #TODO: Issue, the robot has the target but on the way toward the target
+    #it might pass over one target, as the agent has the entire map it should
+    # be able to compute if it is more optime change the goal by the closest to itself 
+    
+    #TODO: plot the trayectory computed!!
     def move(self):
         # This is replicating the communication before movement
         valid_movement = True
