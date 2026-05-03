@@ -43,13 +43,30 @@ def simulation_step():
         agent.setNeighbors(neighbors = neighbors)
 
     # Gradient propagation
-    for agent in A:
-        agent.update_gradient_candidate(Q)        
+    #for agent in A:
+    #    agent.update_gradient_candidate(Q)        
 
     # Think (Reorganize goal and plan next waypoint)
     for agent in A:
         agent.goal_selector(A,Q)
         agent.motion_planner(x_min, x_max, y_min, y_max)
+
+    # ====================================================
+    # LOCAL TASK SWAPPING
+    # This calls Agent.try_goal_swap()
+    # ====================================================
+    processed_pairs = set()
+
+    for agent in A:
+        for other in agent.neighbors:
+            pair = tuple(sorted((agent.id, other.id)))
+
+            if pair in processed_pairs:
+                continue
+
+            agent.try_goal_swap(other)
+
+            processed_pairs.add(pair)        
 
     # Move 
     for agent in A:
@@ -132,7 +149,7 @@ if __name__ == "__main__":
     # Defining initial components
     num_agents = 20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
     comm_range = 2.5 # l is 1 unit, R (comm_range) needs to be > 2*l, Agent radius is expected to be < l/(2*sqrt(2))
-    Total_time = 50
+    Total_time = 300#50
     grid_size = 10
 
     # Grid 
