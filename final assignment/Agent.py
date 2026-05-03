@@ -180,7 +180,8 @@ class Agent:
             if self.goal == other.goal:
                 if self.get_pos() < other.get_pos():
 
-                    if self.candidate_goal is not None:
+                    if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
+                    #if self.candidate_goal is not None:
                         self.goal = self.candidate_goal
                     else:
                         free_goals = [q for q in Q if q not in neighbor_goals]
@@ -192,22 +193,62 @@ class Agent:
 
         return self.goal    
     
+    # def update_gradient_candidate(self, Q):
+    #     """
+    #     PAPER CONNECTION:
+    #     Gradient-based selector from Section III-B.
+
+    #     This approximates the hop-count propagation mechanism:
+    #     - If the agent is near an apparently unassigned goal, it becomes an anchor.
+    #     - Anchor publishes that goal with hop = 0.
+    #     - Otherwise, the agent copies the best candidate_goal from neighbors
+    #     with the smallest hop count.
+    #     """
+
+    #     # Goals currently visible among local neighbors
+    #     neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
+
+    #     # Check if there is a locally unassigned goal one grid step away
+    #     local_unassigned_goals = []
+
+    #     for q in Q:
+    #         if q not in neighbor_goals:
+    #             if self.manhattan_distance(self.get_actual_wp(), q) == 1:
+    #                 local_unassigned_goals.append(q)
+
+    #     # Anchor case
+    #     if local_unassigned_goals:
+    #         self.candidate_goal = random.choice(local_unassigned_goals)
+    #         self.hop = 0
+    #         return
+
+    #     # Common-agent case: receive best candidate from neighbors
+    #     best_neighbor = None
+    #     best_hop = float("inf")
+
+    #     for neighbor in self.neighbors:
+    #         if neighbor.candidate_goal is not None and neighbor.hop < best_hop:
+    #             best_neighbor = neighbor
+    #             best_hop = neighbor.hop
+
+    #     if best_neighbor is not None:
+    #         self.candidate_goal = best_neighbor.candidate_goal
+    #         self.hop = best_neighbor.hop + 1
+    #     else:
+    #         self.candidate_goal = None
+    #         self.hop = float("inf")
+
+
     def update_gradient_candidate(self, Q):
         """
-        PAPER CONNECTION:
-        Gradient-based selector from Section III-B.
+        Improved gradient-based selector.
 
-        This approximates the hop-count propagation mechanism:
-        - If the agent is near an apparently unassigned goal, it becomes an anchor.
-        - Anchor publishes that goal with hop = 0.
-        - Otherwise, the agent copies the best candidate_goal from neighbors
-        with the smallest hop count.
+        Keeps candidate_goal persistent unless a better candidate is found.
         """
 
-        # Goals currently visible among local neighbors
         neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
 
-        # Check if there is a locally unassigned goal one grid step away
+        # 1. Anchor case: goal one grid step away and not used by neighbors
         local_unassigned_goals = []
 
         for q in Q:
@@ -215,27 +256,33 @@ class Agent:
                 if self.manhattan_distance(self.get_actual_wp(), q) == 1:
                     local_unassigned_goals.append(q)
 
-        # Anchor case
         if local_unassigned_goals:
-            self.candidate_goal = random.choice(local_unassigned_goals)
+            # Choose closest local candidate deterministically
+            self.candidate_goal = min(
+                local_unassigned_goals,
+                key=lambda q: self.manhattan_distance(self.get_actual_wp(), q)
+            )
             self.hop = 0
             return
 
-        # Common-agent case: receive best candidate from neighbors
-        best_neighbor = None
-        best_hop = float("inf")
+        # 2. Propagation case: receive best candidate from neighbors
+        best_candidate = self.candidate_goal
+        best_hop = self.hop
 
         for neighbor in self.neighbors:
-            if neighbor.candidate_goal is not None and neighbor.hop < best_hop:
-                best_neighbor = neighbor
-                best_hop = neighbor.hop
+            if neighbor.candidate_goal is None:
+                continue
 
-        if best_neighbor is not None:
-            self.candidate_goal = best_neighbor.candidate_goal
-            self.hop = best_neighbor.hop + 1
-        else:
-            self.candidate_goal = None
-            self.hop = float("inf")
+            candidate = neighbor.candidate_goal
+            hop = neighbor.hop + 1
+
+            # Accept only if better than current memory
+            if hop < best_hop:
+                best_candidate = candidate
+                best_hop = hop
+
+        self.candidate_goal = best_candidate
+        self.hop = best_hop            
 
 
     # Local task swapping

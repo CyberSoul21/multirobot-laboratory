@@ -18,7 +18,9 @@ def update(frame):
     for agent in A:
         x,y = agent.get_pos()
         gol_x,gol_y = agent.get_goal()
-        if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
+        #if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
+        tol = 1e-3
+        if abs(x - gol_x) < tol and abs(y - gol_y) < tol:
             num_goals = num_goals + 1        
     achieved_goals.append(num_goals)            
     
@@ -72,7 +74,7 @@ def update(frame):
 #         history[agent.id].append(agent.get_pos())
 
 def simulation_step():
-    # Listen
+    # Listen (Add as neigbors all the agents within communication range)
     for agent in A:
         neighbors = []
         for neighbor in A:
@@ -84,7 +86,7 @@ def simulation_step():
     for agent in A:
         agent.update_gradient_candidate(Q)
 
-    # Goal selector
+    # Think: Goal selector
     for agent in A:
         agent.goal_selector(A, Q)
 
@@ -99,7 +101,7 @@ def simulation_step():
             agent.try_goal_swap(other)
             processed_pairs.add(pair)
 
-    # Motion planning AFTER final goal for this step is known
+    # Think: Motion planning AFTafter final goal for this step is known
     for agent in A:
         agent.motion_planner(x_min, x_max, y_min, y_max)
 
