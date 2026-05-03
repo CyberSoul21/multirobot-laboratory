@@ -32,46 +32,83 @@ def update(frame):
     points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
     return points,
 
-# It does an iteration time step for all the agents with a Listen-Think-Walk manner
+# # It does an iteration time step for all the agents with a Listen-Think-Walk manner
+# def simulation_step():
+#     # Listen (Add as neigbors all the agents within communication range)
+#     for agent in A:
+#         neighbors = []
+#         for neighbor in A:
+#             if(neighbor is not agent and agent.can_communicate(neighbor)):
+#                 neighbors.append(neighbor)
+#         agent.setNeighbors(neighbors = neighbors)
+
+#     # Gradient propagation
+#     for agent in A:
+#         agent.update_gradient_candidate(Q)        
+
+#     # Think (Reorganize goal and plan next waypoint)
+#     for agent in A:
+#         agent.goal_selector(A,Q)
+#         agent.motion_planner(x_min, x_max, y_min, y_max)
+
+#     # Local Task swapping
+#     # This calls Agent.try_goal_swap()
+#     processed_pairs = set()
+
+#     for agent in A:
+#         for other in agent.neighbors:
+#             pair = tuple(sorted((agent.id, other.id)))
+
+#             if pair in processed_pairs:
+#                 continue
+
+#             agent.try_goal_swap(other)
+
+#             processed_pairs.add(pair)        
+
+#     # Move 
+#     for agent in A:
+#         agent.move()
+#         history[agent.id].append(agent.get_pos())
+
 def simulation_step():
-    # Listen (Add as neigbors all the agents within communication range)
+    # Listen
     for agent in A:
         neighbors = []
         for neighbor in A:
-            if(neighbor is not agent and agent.can_communicate(neighbor)):
+            if neighbor is not agent and agent.can_communicate(neighbor):
                 neighbors.append(neighbor)
-        agent.setNeighbors(neighbors = neighbors)
+        agent.setNeighbors(neighbors=neighbors)
 
     # Gradient propagation
-    #for agent in A:
-    #    agent.update_gradient_candidate(Q)        
-
-    # Think (Reorganize goal and plan next waypoint)
     for agent in A:
-        agent.goal_selector(A,Q)
-        agent.motion_planner(x_min, x_max, y_min, y_max)
+        agent.update_gradient_candidate(Q)
 
-    # ====================================================
-    # LOCAL TASK SWAPPING
-    # This calls Agent.try_goal_swap()
-    # ====================================================
+    # Goal selector
+    for agent in A:
+        agent.goal_selector(A, Q)
+
+    # Local task swapping BEFORE motion planning
     processed_pairs = set()
-
     for agent in A:
         for other in agent.neighbors:
             pair = tuple(sorted((agent.id, other.id)))
-
             if pair in processed_pairs:
                 continue
 
             agent.try_goal_swap(other)
+            processed_pairs.add(pair)
 
-            processed_pairs.add(pair)        
+    # Motion planning AFTER final goal for this step is known
+    for agent in A:
+        agent.motion_planner(x_min, x_max, y_min, y_max)
 
-    # Move 
+    # Move
     for agent in A:
         agent.move()
         history[agent.id].append(agent.get_pos())
+
+
 
 # It defines the goal positions for the letter A
 def generate_H(x_min, x_max, y_min, y_max, n_points):
