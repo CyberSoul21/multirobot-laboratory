@@ -30,8 +30,9 @@ def update(frame):
 
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
-    # points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
-    points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
+    points.set_sizes([25]) #This is the agent size, for greater grids, the value needs to be lower
+    #points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
+    #points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
     return points,
 
 # # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -152,10 +153,10 @@ def generate_H(x_min, x_max, y_min, y_max, n_points):
 
 if __name__ == "__main__":
     # Defining initial components
-    num_agents = 20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
+    num_agents = 30#100#30#20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
     comm_range = 2.5 # l is 1 unit, R (comm_range) needs to be > 2*l, Agent radius is expected to be < l/(2*sqrt(2))
     Total_time = 300#50
-    grid_size = 10
+    grid_size = 20#40#20 #10
 
     # Grid 
     x_min, x_max = 0 , grid_size

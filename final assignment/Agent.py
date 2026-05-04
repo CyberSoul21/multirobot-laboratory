@@ -169,9 +169,13 @@ class Agent:
 
                     # Goal changed mid-movement → force immediate replan
                     # so motion_planner doesn't keep heading to the old target
+                    # if self.goal != old_goal:
+                    #     self.next_wp = self.actual_wp
+                    #     self.valid_movement = False
                     if self.goal != old_goal:
+                        self.pos = (float(self.actual_wp[0]), float(self.actual_wp[1]))
                         self.next_wp = self.actual_wp
-                        self.valid_movement = False
+                        self.valid_movement = False                        
 
         # --- IDLE AGENT CHECK ---
         # If this agent has already reached its goal, check whether any
@@ -196,8 +200,11 @@ class Agent:
                 if self.goal != old_goal:
                 # Move toward the closest unclaimed goal (greedy assignment)
                 # Minimises the extra distance this agent needs to travel                    
+                    # self.next_wp = self.actual_wp
+                    # self.valid_movement = False
+                    self.pos = (float(self.actual_wp[0]), float(self.actual_wp[1]))
                     self.next_wp = self.actual_wp
-                    self.valid_movement = False
+                    self.valid_movement = False                    
 
         return self.goal         
 
