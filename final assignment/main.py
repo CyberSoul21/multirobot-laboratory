@@ -67,11 +67,6 @@ def simulation_step():
     for agent in A:
         agent.motion_planner(x_min, x_max, y_min, y_max)
 
-    # # Move
-    # for agent in A:
-    #     agent.move()
-    #     history[agent.id].append(agent.get_pos())
-
     # Think: ALL agents decide simultaneously (no one moves yet)
     for agent in A:
         agent.decide_move()
