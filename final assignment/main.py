@@ -13,16 +13,15 @@ import csv
 
 ani = None
 step_times = []
-###################################################################################
 #--METRICS--
-#how far all agents are from their currently assigned goals
+# how far all agents are from their currently assigned goals
 def compute_J1():
     total = 0
     for agent in A:
         total += agent.manhattan_distance(agent.get_actual_wp(), agent.get_goal())
     return total
 
-#how many target positions are not currently assigned to any robot
+# how many target positions are not currently assigned to any robot
 def compute_J2():
     assigned_goals = set(agent.get_goal() for agent in A)
     return len(Q) - len(assigned_goals)
@@ -41,34 +40,8 @@ def compute_completed_agents(tol=1e-3):
             completed += 1
 
     return completed
-###################################################################################
 
-# def update(frame):
-#     # Time step with all the actions 
-#     simulation_step()
-
-#     # To plot the number of achieved goals along time
-#     num_goals = 0
-#     for agent in A:
-#         x,y = agent.get_pos()
-#         gol_x,gol_y = agent.get_goal()
-#         #if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
-#         tol = 1e-3
-#         if abs(x - gol_x) < tol and abs(y - gol_y) < tol:
-#             num_goals = num_goals + 1        
-#     achieved_goals.append(num_goals)            
-    
-#     # Point plot
-#     xs = [agent.get_pos()[0] for agent in A]
-#     ys = [agent.get_pos()[1] for agent in A]
-
-#     points.set_offsets(np.c_[xs, ys])
-#     points.set_color(colors)
-#     points.set_sizes([25]) #This is the agent size, for greater grids, the value needs to be lower
-#     #points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
-#     #points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
-#     return points,
-
+# Simulation function
 def update(frame):
 
     step_start = time.time()
@@ -96,7 +69,7 @@ def update(frame):
 
     return points,
 
-# # It does an iteration time step for all the agents with a Listen-Think-Walk manner
+# It does an iteration time step for all the agents with a Listen-Think-Walk manner
 def simulation_step():
     # Listen (Add as neigbors all the agents within communication range)
     for agent in A:
@@ -114,7 +87,7 @@ def simulation_step():
     for agent in A:
         agent.goal_selector(A, Q,True)
 
-    # Local task swapping before motion planning
+    # Think: Local task swapping before motion planning
     processed_pairs = set()
     for agent in A:
         for other in agent.neighbors:
@@ -126,7 +99,7 @@ def simulation_step():
         
             processed_pairs.add(pair)
 
-    # Think: Motion planning AFTafter final goal for this step is known
+    # Think: Motion planning after final goal for this step is known
     for agent in A:
         agent.motion_planner(x_min, x_max, y_min, y_max)
 
@@ -141,7 +114,7 @@ def simulation_step():
 
 
 
-# It defines the goal positions for the letter A
+# It defines the goal positions for the letter H, variable on grid dimensions and agent number
 def generate_H(x_min, x_max, y_min, y_max, n_points):
     # Adjust grid
     cx = (x_min + x_max) / 2
@@ -215,10 +188,10 @@ def generate_H(x_min, x_max, y_min, y_max, n_points):
 
 if __name__ == "__main__":
     # Defining initial components
-    num_agents = 20#30#100#30#20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
+    num_agents = 20
     comm_range = 2.5 # l is 1 unit, R (comm_range) needs to be > 2*l, Agent radius is expected to be < l/(2*sqrt(2))
-    Total_time = 300#50
-    grid_size = 10#20#40#20#10
+    Total_time = 50
+    grid_size = 10
 
     # Grid 
     x_min, x_max = 0 , grid_size
@@ -233,12 +206,10 @@ if __name__ == "__main__":
 
     # Agents
     A = [] # set of agents
-    #for a in range(num_agents):
-    #    A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1]))
     for a in range(num_agents):
         A.append(Agent(id=a, comm_range=comm_range,
-                    posx=int(grid_pos[a, 0]),   # cast to plain Python int
-                    posy=int(grid_pos[a, 1])))  # cast to plain Python int
+                    posx=int(grid_pos[a, 0]),   
+                    posy=int(grid_pos[a, 1])))  
 
 
     # Targets
@@ -246,11 +217,7 @@ if __name__ == "__main__":
 
     print("Number of agents:",len(A))
     print("Number of goals:", len(Q))
-    # Agents have limited range, so they wouldn't know all the robots goal, so the algorithm assumes that some robots will
-    # have same target and they will re arrange. So the targel location will be random, we wont distribute targets at all.
-    for agent in A:
-        agent.goal = random.choice(Q)
-
+    
     # Code to display grid
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.set_title(f"Target formation with {num_agents} agents")
@@ -278,7 +245,6 @@ if __name__ == "__main__":
     colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
     history = {agent.id: [agent.pos] for agent in A}
     ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
-
     plt.show()
 
     end_time = time.time()

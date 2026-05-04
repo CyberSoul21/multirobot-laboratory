@@ -3,18 +3,19 @@ import random
 
 class Agent:
     def __init__(self, id, comm_range, posx=0, posy=0):
+        # Position
         self.id = id
-        # self.pos = (posx, posy)
-        # self.actual_wp = (posx, posy)
-        # self.next_wp = (posx, posy)
-        self.pos      = (float(posx), float(posy))  # always plain Python float
-        self.actual_wp = (int(posx),   int(posy))   # always plain Python int
-        self.next_wp   = (int(posx),   int(posy))   # always plain Python int        
-        self.comm_range = comm_range
+        self.pos      = (float(posx), float(posy))
+        self.actual_wp = (int(posx),   int(posy))   
+        self.next_wp   = (int(posx),   int(posy))           
         self.goal = None
+        
+        # Comunication
+        self.comm_range = comm_range
         self.neighbors = []
         self.validMovement_ = False
         self.valid_movement = True 
+
         #Gradient
         self.candidate_goal = None
         self.hop = float("inf")
@@ -27,7 +28,7 @@ class Agent:
             f"goal={self.goal}"
         )
 
-    # Position methods
+    #---- Position methods ----#
     def get_id(self):
         return self.id
     
@@ -59,9 +60,9 @@ class Agent:
         self.neighbors = neighbors
 
 
-    # Distance / communication
+    #---- Distance / communication ----#
+    # Computes Euclidean distance
     def distance_to(self, other):
-        # Computes Euclidean distance
         ox, oy = other.get_pos()
         pos_x, pos_y = self.pos
         return math.sqrt((pos_x - ox) ** 2 + (pos_y - oy) ** 2)
@@ -69,17 +70,17 @@ class Agent:
     def can_communicate(self, other):
         return self.distance_to(other) <= self.comm_range
 
+    # Computes Manhattan distance
     def manhattan_distance(self, p1, p2):
-        # Computes Manhattan distance
         return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
+    # Returns true if pos_a is lex greater than pos_b
     def lex_greater(self, pos_a, pos_b):
-        # Returns true if pos_a is lex greater than pos_b
         if pos_a[0] != pos_b[0]:
             return pos_a[0] > pos_b[0]
         return pos_a[1] > pos_b[1]
 
-    # Movement planner
+    #---- Movement planner ----#
     def is_at_waypoint(self, pos, wp, tol=1e-3):
         return abs(pos[0] - wp[0]) < tol and abs(pos[1] - wp[1]) < tol
     
@@ -121,8 +122,62 @@ class Agent:
                 valid_candidates,
                 key=lambda p: self.manhattan_distance(p, self.goal)
             )        
+
+    def decide_move(self):
+        # THINK phase: check neighbours using the current snapshot.
+        # Nobody has moved yet this tick, so actual_wp values are consistent.
+        self.valid_movement = True
+        for neighbor in self.neighbors:
+            neighbor_actual_wp = neighbor.get_actual_wp()
+            neighbor_next_wp   = neighbor.get_next_wp()
+
+            # Constraint A.1a: neighbour is sitting on our intended waypoint
+            if self.next_wp == neighbor_actual_wp:
+                self.valid_movement = False
+                break
+
+            # Constraint A.1b: neighbour with higher lex priority wants same waypoint
+            if self.next_wp == neighbor_next_wp:
+                if not self.lex_greater(self.actual_wp, neighbor_actual_wp):
+                    self.valid_movement = False
+                    break
+
+            # Constraint A.2: head-on edge collision
+            if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
+                self.valid_movement = False
+                break
+
+    def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
+        # WALK phase: execute the decision made in decide_move().
+        if self.valid_movement:
+            next_wp_x, next_wp_y     = self.next_wp
+            actual_wp_x, actual_wp_y = self.actual_wp
+            pos_x, pos_y             = self.pos
+
+            x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+            y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+
+            # Hard clamp: robot can never leave the grid
+            x = max(x_min, min(x_max, x))
+            y = max(y_min, min(y_max, y))
+
+            # SNAP: if close enough to next_wp, lock exactly onto it
+            # This prevents robots stopping at 2.9999 or 3.0001 forever
+            if abs(x - next_wp_x) < 0.15 and abs(y - next_wp_y) < 0.15:
+                x = float(next_wp_x)
+                y = float(next_wp_y)
+
+            # If clamped against wall, reset waypoints for clean replan
+            raw_x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+            raw_y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+            if raw_x != x or raw_y != y:
+                self.set_actual_wp(round(x), round(y))
+                self.next_wp = (round(x), round(y))
+                self.valid_movement = False
+
+            self.set_pos(x, y)
  
-     # Goal selector        
+    #---- Goal assignment ----#       
     def goal_selector(self, agents, Q, flag=False):
 
         # If the agent has no goal yet, assign one randomly from Q
@@ -208,61 +263,6 @@ class Agent:
 
         return self.goal         
 
-    def decide_move(self):
-        # THINK phase: check neighbours using the current snapshot.
-        # Nobody has moved yet this tick, so actual_wp values are consistent.
-        self.valid_movement = True
-        for neighbor in self.neighbors:
-            neighbor_actual_wp = neighbor.get_actual_wp()
-            neighbor_next_wp   = neighbor.get_next_wp()
-
-            # Constraint A.1a: neighbour is sitting on our intended waypoint
-            if self.next_wp == neighbor_actual_wp:
-                self.valid_movement = False
-                break
-
-            # Constraint A.1b: neighbour with higher lex priority wants same waypoint
-            if self.next_wp == neighbor_next_wp:
-                if not self.lex_greater(self.actual_wp, neighbor_actual_wp):
-                    self.valid_movement = False
-                    break
-
-            # Constraint A.2: head-on edge collision
-            if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
-                self.valid_movement = False
-                break
-
-    def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
-        # WALK phase: execute the decision made in decide_move().
-        if self.valid_movement:
-            next_wp_x, next_wp_y     = self.next_wp
-            actual_wp_x, actual_wp_y = self.actual_wp
-            pos_x, pos_y             = self.pos
-
-            x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
-            y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
-
-            # Hard clamp: robot can never leave the grid
-            x = max(x_min, min(x_max, x))
-            y = max(y_min, min(y_max, y))
-
-            # SNAP: if close enough to next_wp, lock exactly onto it
-            # This prevents robots stopping at 2.9999 or 3.0001 forever
-            if abs(x - next_wp_x) < 0.15 and abs(y - next_wp_y) < 0.15:
-                x = float(next_wp_x)
-                y = float(next_wp_y)
-
-            # If clamped against wall, reset waypoints for clean replan
-            raw_x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
-            raw_y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
-            if raw_x != x or raw_y != y:
-                self.set_actual_wp(round(x), round(y))
-                self.next_wp = (round(x), round(y))
-                self.valid_movement = False
-
-            self.set_pos(x, y)
-
-    # Local task swapping
     def try_goal_swap(self, other, beta=0.1):
         """
         PAPER CONNECTION:
@@ -369,6 +369,3 @@ class Agent:
         self.candidate_goal = best_candidate
         self.hop = best_hop          
     
-
-if __name__ == "__main__":
-    print("test")
