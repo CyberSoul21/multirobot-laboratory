@@ -124,8 +124,6 @@ class Agent:
             )        
 
     def decide_move(self):
-        # THINK phase: check neighbours using the current snapshot.
-        # Nobody has moved yet this tick, so actual_wp values are consistent.
         self.valid_movement = True
         for neighbor in self.neighbors:
             neighbor_actual_wp = neighbor.get_actual_wp()
@@ -148,7 +146,6 @@ class Agent:
                 break
 
     def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
-        # WALK phase: execute the decision made in decide_move().
         if self.valid_movement:
             next_wp_x, next_wp_y     = self.next_wp
             actual_wp_x, actual_wp_y = self.actual_wp
@@ -157,12 +154,10 @@ class Agent:
             x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
             y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
 
-            # Hard clamp: robot can never leave the grid
+            # Clamp into the grid
             x = max(x_min, min(x_max, x))
             y = max(y_min, min(y_max, y))
 
-            # SNAP: if close enough to next_wp, lock exactly onto it
-            # This prevents robots stopping at 2.9999 or 3.0001 forever
             if abs(x - next_wp_x) < 0.15 and abs(y - next_wp_y) < 0.15:
                 x = float(next_wp_x)
                 y = float(next_wp_y)
@@ -191,7 +186,6 @@ class Agent:
             if other.id != self.id and self.can_communicate(other)
         ]
 
-        # --- CONFLICT RESOLUTION (paper §III-B) ---
         # Check if any neighbour holds the same goal as this agent
         for other in agents:
             if other.id == self.id:
@@ -200,33 +194,21 @@ class Agent:
             if not self.can_communicate(other):
                 continue
 
-            # Conflict detected: both this agent and 'other' hold the same goal
+            # Conflict detected
             if self.goal == other.goal:
 
-                # Tie-breaking: the agent with the lexicographically SMALLER
-                # position must change its goal (the other one keeps it)
-                # Paper §II-B: p1 ≻ p2 iff p1.x > p2.x, or p1.x==p2.x and p1.y > p2.y
+                # The agent with the lex smaller position must change its goal
                 if self.get_pos() < other.get_pos():
 
-                    # Gradient-based choice (paper §III-B.2):
-                    # Use the candidate_goal propagated by the hop-count wave,
-                    # as long as it is not already taken by a visible neighbour                    
-
-                    old_goal = self.goal  # remember current goal
-
+                    # Gradient-based choice
+                    old_goal = self.goal  
                     if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
                         self.goal = self.candidate_goal
                     else:
-                        # Random fallback (paper §III-B.1):
-                        # Pick any goal not currently held by a visible neighbour                        
+                        # Random fallback                         
                         free_goals = [q for q in Q if q not in neighbor_goals]
                         self.goal = random.choice(free_goals) if free_goals else random.choice(Q)
 
-                    # Goal changed mid-movement → force immediate replan
-                    # so motion_planner doesn't keep heading to the old target
-                    # if self.goal != old_goal:
-                    #     self.next_wp = self.actual_wp
-                    #     self.valid_movement = False
                     if self.goal != old_goal:
                         self.pos = (float(self.actual_wp[0]), float(self.actual_wp[1]))
                         self.next_wp = self.actual_wp
@@ -236,9 +218,7 @@ class Agent:
         # If this agent has already reached its goal, check whether any
         # goal in Q is completely unclaimed by any agent in the swarm.
         # This handles the case where an agent finishes early while
-        # some goal squares are left empty (J2 > 0).
-        # Note: this uses global agent list, which is acceptable since
-        # all agents share Q a priori (paper §II-C)        
+        # some goal squares are left empty.     
         tol = 1e-3
         px, py = self.get_pos()
         gx, gy = self.goal
@@ -251,12 +231,8 @@ class Agent:
                 self.goal = min(unclaimed,
                                 key=lambda q: self.manhattan_distance(self.get_pos(), q))
 
-                # New goal assigned → force replan toward it
-                if self.goal != old_goal:
                 # Move toward the closest unclaimed goal (greedy assignment)
-                # Minimises the extra distance this agent needs to travel                    
-                    # self.next_wp = self.actual_wp
-                    # self.valid_movement = False
+                if self.goal != old_goal:
                     self.pos = (float(self.actual_wp[0]), float(self.actual_wp[1]))
                     self.next_wp = self.actual_wp
                     self.valid_movement = False                    
@@ -264,54 +240,27 @@ class Agent:
         return self.goal         
 
     def try_goal_swap(self, other, beta=0.1):
-        """
-        PAPER CONNECTION:
-        Implements the Local Task Swapping idea from Section III-A
-        and Algorithm 4.
-
-        Paper idea:
-        - Neighboring agents compare the total pairwise Manhattan distance
-          before and after swapping goals.
-        - If swapping decreases total distance, they swap goals.
-        - If swapping keeps the same distance, they swap with probability beta.
-          This helps resolve deadlocks.
-
-        This function implements:
-        - improving swap
-        - neutral probabilistic swap
-
-        IMPORTANT:
-        The paper uses a 2-way handshake to guarantee that only one
-        consistent pairwise swap happens at a time.
-        This function does NOT implement the full handshake protocol.
-        That should be approximated in main.py by preventing duplicate
-        simultaneous swaps.
-        """
-
         if self.goal is None or other.goal is None:
             return False
 
-        # PAPER: current pairwise cost:
-        # d(self, self.goal) + d(other, other.goal)
+        # Current pairwise cost:
         current_cost = (
             self.manhattan_distance(self.get_pos(), self.goal)
             + self.manhattan_distance(other.get_pos(), other.goal)
         )
 
-        # PAPER: swapped pairwise cost:
-        # d(self, other.goal) + d(other, self.goal)
+        # Swapped pairwise cost:
         swapped_cost = (
             self.manhattan_distance(self.get_pos(), other.goal)
             + self.manhattan_distance(other.get_pos(), self.goal)
         )
 
-        # PAPER: swap if total pairwise distance decreases.
+        # Swap if total pairwise distance decreases.
         if swapped_cost < current_cost:
             self.goal, other.goal = other.goal, self.goal
             return True
 
-        # PAPER: if cost is equal, swap with probability beta.
-        # This is used to help break deadlocks.
+        # If cost is equal, swap with probability beta.
         if swapped_cost == current_cost and random.random() < beta:
             self.goal, other.goal = other.goal, self.goal
             return True
@@ -319,30 +268,18 @@ class Agent:
         return False
 
     def update_gradient_candidate(self, Q):
-        """
-        PAPER CONNECTION:
-        Gradient-based selector from Section III-B.
-
-        This approximates the hop-count propagation mechanism:
-        - If the agent is near an apparently unassigned goal, it becomes an anchor.
-        - Anchor publishes that goal with hop = 0.
-        - Otherwise, the agent copies the best candidate_goal from neighbors
-        with the smallest hop count.
-        - Keeps candidate_goal persistent unless a better candidate is found.
-        """
 
         neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
 
         # 1. Anchor case: goal one grid step away and not used by neighbors
         local_unassigned_goals = []
-
         for q in Q:
             if q not in neighbor_goals:
                 if self.manhattan_distance(self.get_actual_wp(), q) == 1:
                     local_unassigned_goals.append(q)
 
+        # Choose closest local candidate deterministically
         if local_unassigned_goals:
-            # Choose closest local candidate deterministically
             self.candidate_goal = min(
                 local_unassigned_goals,
                 key=lambda q: self.manhattan_distance(self.get_actual_wp(), q)
@@ -368,4 +305,3 @@ class Agent:
 
         self.candidate_goal = best_candidate
         self.hop = best_hop          
-    
