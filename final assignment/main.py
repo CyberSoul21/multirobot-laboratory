@@ -107,7 +107,7 @@ def simulation_step():
     for agent in A:
         agent.decide_move()
 
-    # Walk: ALL agents act on their pre-computed decision
+    # Move: ALL agents act on their pre-computed decision
     for agent in A:
         agent.commit_move(x_min, x_max, y_min, y_max)
         history[agent.id].append(agent.get_pos())  
@@ -211,10 +211,8 @@ if __name__ == "__main__":
                     posx=int(grid_pos[a, 0]),   
                     posy=int(grid_pos[a, 1])))  
 
-
     # Targets
     Q = generate_H(n_points=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
-
     print("Number of agents:",len(A))
     print("Number of goals:", len(Q))
     
@@ -292,8 +290,7 @@ if __name__ == "__main__":
     print(f"Average blocked agents: {avg_blocked:.2f}")
     print(f"Max blocked agents: {max_blocked}")        
 
-
-
+    # Store metrics
     with open("simulation_data.csv", "w", newline="") as f:
         writer = csv.writer(f)
 

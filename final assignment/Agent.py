@@ -89,13 +89,9 @@ class Agent:
         # Replan if: arrived at next_wp  OR  was blocked last tick
         # This prevents the robot freezing when decide_move() blocks it
         at_next = self.is_at_waypoint(self.pos, self.next_wp)
-        was_blocked = not self.valid_movement  # False if decide_move blocked us
-
+        was_blocked = not self.valid_movement  
         if at_next or was_blocked:
 
-            # Only update actual_wp when truly arrived at a waypoint.
-            # When blocked mid-step, keep actual_wp as last confirmed integer position
-            # so commit_move computes a clean delta and robot doesn't drift off-grid.
             if at_next:
                 pos_x, pos_y = self.pos
                 self.set_actual_wp(round(pos_x), round(pos_y))
@@ -206,7 +202,6 @@ class Agent:
                         self.next_wp = self.actual_wp
                         self.valid_movement = False                        
 
-        # --- IDLE AGENT CHECK ---
         # If this agent has already reached its goal, check whether any
         # goal in Q is completely unclaimed by any agent in the swarm.
         # This handles the case where an agent finishes early while
