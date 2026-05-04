@@ -79,7 +79,7 @@ def simulation_step():
                 neighbors.append(neighbor)
         agent.setNeighbors(neighbors=neighbors)
 
-    # Gradient propagation
+    # Think: Gradient propagation
     for agent in A:
         agent.update_gradient_candidate(Q)
 
@@ -103,7 +103,7 @@ def simulation_step():
     for agent in A:
         agent.motion_planner(x_min, x_max, y_min, y_max)
 
-    # Think: ALL agents decide simultaneously (no one moves yet)
+    # Move: ALL agents decide simultaneously (no one moves yet)
     for agent in A:
         agent.decide_move()
 
@@ -111,8 +111,6 @@ def simulation_step():
     for agent in A:
         agent.commit_move(x_min, x_max, y_min, y_max)
         history[agent.id].append(agent.get_pos())  
-
-
 
 # It defines the goal positions for the letter H, variable on grid dimensions and agent number
 def generate_H(x_min, x_max, y_min, y_max, n_points):
