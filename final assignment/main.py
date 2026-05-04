@@ -8,7 +8,10 @@ from matplotlib import pyplot as plt
 from Agent import Agent
 import numpy as np
 import random
+import time
+
 ani = None
+step_times = []
 ###################################################################################
 #--METRICS--
 #how far all agents are from their currently assigned goals
@@ -66,7 +69,13 @@ def compute_completed_agents(tol=1e-3):
 #     return points,
 
 def update(frame):
+
+    step_start = time.time()
+
     simulation_step()
+
+    step_end = time.time()
+    step_times.append(step_end - step_start)
 
     achieved_goals.append(compute_completed_agents())
     J1_history.append(compute_J1())
@@ -205,10 +214,10 @@ def generate_H(x_min, x_max, y_min, y_max, n_points):
 
 if __name__ == "__main__":
     # Defining initial components
-    num_agents = 30#100#30#20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
+    num_agents = 20#30#100#30#20  # Hay un caso para 15 agentes que genera 16 goles, solo falla en ese
     comm_range = 2.5 # l is 1 unit, R (comm_range) needs to be > 2*l, Agent radius is expected to be < l/(2*sqrt(2))
     Total_time = 300#50
-    grid_size = 20#40#20 #10
+    grid_size = 10#20#40#20#10
 
     # Grid 
     x_min, x_max = 0 , grid_size
@@ -263,10 +272,61 @@ if __name__ == "__main__":
     J2_history = []
     blocked_history = []
     
+    start_time = time.time()
+
     colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
     history = {agent.id: [agent.pos] for agent in A}
     ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
+
     plt.show()
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f"Total simulation time: {total_time:.4f} seconds")
+
+    if step_times:
+        avg_step_time = sum(step_times) / len(step_times)
+        max_step_time = max(step_times)
+        min_step_time = min(step_times)
+
+        print(f"Average step time: {avg_step_time:.6f} s")
+        print(f"Max step time: {max_step_time:.6f} s")
+        print(f"Min step time: {min_step_time:.6f} s")
+    else:
+        print("No simulation steps were executed.")
+
+
+    # =========================
+    # SUMMARY METRICS
+    # =========================
+
+    # Convergence: first time all agents reach goals
+    convergence_time = None
+    for t, val in enumerate(achieved_goals):
+        if val == num_agents:
+            convergence_time = t
+            break
+
+    # Final metrics
+    final_J1 = J1_history[-1]
+    final_J2 = J2_history[-1]
+    max_completed = max(achieved_goals)
+
+    # Blocked agents stats
+    avg_blocked = sum(blocked_history) / len(blocked_history)
+    max_blocked = max(blocked_history)
+
+    print("\n===== METRICS SUMMARY =====")
+    print(f"Convergence time: {convergence_time}")
+    print(f"Final J1: {final_J1}")
+    print(f"Final J2: {final_J2}")
+    print(f"Max completed agents: {max_completed}/{num_agents}")
+    print(f"Average blocked agents: {avg_blocked:.2f}")
+    print(f"Max blocked agents: {max_blocked}")        
+
+
+    
 
     # To show final positions and goals achieved
     for agent in A:
