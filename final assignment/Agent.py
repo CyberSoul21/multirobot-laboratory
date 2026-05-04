@@ -173,7 +173,7 @@ class Agent:
             self.set_pos(x, y)
  
     #---- Goal assignment ----#       
-    def goal_selector(self, agents, Q, flag=False):
+    def goal_selector(self, Q):
 
         # If the agent has no goal yet, assign one randomly from Q
         if self.goal is None:
@@ -181,24 +181,16 @@ class Agent:
             return self.goal
 
         # Build the list of goals currently held by neighbours in comm range
-        neighbor_goals = [
-            other.goal for other in agents
-            if other.id != self.id and self.can_communicate(other)
-        ]
+        neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
 
         # Check if any neighbour holds the same goal as this agent
-        for other in agents:
-            if other.id == self.id:
-                continue
-            # Only interact with agents within communication range
-            if not self.can_communicate(other):
-                continue
+        for neighbor in self.neighbors:
 
             # Conflict detected
-            if self.goal == other.goal:
+            if self.goal == neighbor.goal:
 
                 # The agent with the lex smaller position must change its goal
-                if self.get_pos() < other.get_pos():
+                if self.get_pos() < neighbor.get_pos():
 
                     # Gradient-based choice
                     old_goal = self.goal  
@@ -223,7 +215,7 @@ class Agent:
         px, py = self.get_pos()
         gx, gy = self.goal
         if abs(px - gx) < tol and abs(py - gy) < tol:
-            all_claimed = [other.goal for other in agents if other.id != self.id]
+            all_claimed = [neighbor.goal for neighbor in self.neighbors]
             unclaimed = [q for q in Q if q not in all_claimed]
 
             if unclaimed:

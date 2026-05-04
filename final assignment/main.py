@@ -85,7 +85,7 @@ def simulation_step():
 
     # Think: Goal selector
     for agent in A:
-        agent.goal_selector(A, Q,True)
+        agent.goal_selector(Q)
 
     # Think: Local task swapping before motion planning
     processed_pairs = set()
