@@ -8,7 +8,9 @@ from matplotlib import pyplot as plt
 from Agent import Agent
 import numpy as np
 import random
-
+ani = None
+###################################################################################
+#--METRICS--
 #how far all agents are from their currently assigned goals
 def compute_J1():
     total = 0
@@ -16,35 +18,72 @@ def compute_J1():
         total += agent.manhattan_distance(agent.get_actual_wp(), agent.get_goal())
     return total
 
-#how many target positions are not currently assigned to any robo
+#how many target positions are not currently assigned to any robot
 def compute_J2():
     assigned_goals = set(agent.get_goal() for agent in A)
     return len(Q) - len(assigned_goals)
 
+def compute_blocked_agents():
+    return sum(1 for agent in A if not agent.valid_movement)
+
+def compute_completed_agents(tol=1e-3):
+    completed = 0
+
+    for agent in A:
+        x, y = agent.get_pos()
+        gx, gy = agent.get_goal()
+
+        if abs(x - gx) < tol and abs(y - gy) < tol:
+            completed += 1
+
+    return completed
+###################################################################################
+
+# def update(frame):
+#     # Time step with all the actions 
+#     simulation_step()
+
+#     # To plot the number of achieved goals along time
+#     num_goals = 0
+#     for agent in A:
+#         x,y = agent.get_pos()
+#         gol_x,gol_y = agent.get_goal()
+#         #if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
+#         tol = 1e-3
+#         if abs(x - gol_x) < tol and abs(y - gol_y) < tol:
+#             num_goals = num_goals + 1        
+#     achieved_goals.append(num_goals)            
+    
+#     # Point plot
+#     xs = [agent.get_pos()[0] for agent in A]
+#     ys = [agent.get_pos()[1] for agent in A]
+
+#     points.set_offsets(np.c_[xs, ys])
+#     points.set_color(colors)
+#     points.set_sizes([25]) #This is the agent size, for greater grids, the value needs to be lower
+#     #points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
+#     #points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
+#     return points,
+
 def update(frame):
-    # Time step with all the actions 
     simulation_step()
 
-    # To plot the number of achieved goals along time
-    num_goals = 0
-    for agent in A:
-        x,y = agent.get_pos()
-        gol_x,gol_y = agent.get_goal()
-        #if  abs(x - gol_x) < 1e-9 and abs(y - gol_y) < 1e-9:
-        tol = 1e-3
-        if abs(x - gol_x) < tol and abs(y - gol_y) < tol:
-            num_goals = num_goals + 1        
-    achieved_goals.append(num_goals)            
-    
-    # Point plot
+    achieved_goals.append(compute_completed_agents())
+    J1_history.append(compute_J1())
+    J2_history.append(compute_J2())
+    blocked_history.append(compute_blocked_agents())
+
     xs = [agent.get_pos()[0] for agent in A]
     ys = [agent.get_pos()[1] for agent in A]
 
     points.set_offsets(np.c_[xs, ys])
     points.set_color(colors)
-    points.set_sizes([25]) #This is the agent size, for greater grids, the value needs to be lower
-    #points.set_sizes([150]) #This is the agent size, for greater grids, the value needs to be lower
-    #points.set_sizes([300/(0.25*grid_size)]) #This is the agent size, for greater grids, the value needs to be lower
+    points.set_sizes([25])
+
+    if achieved_goals[-1] == num_agents:
+        print("Formation completed!")
+        ani.event_source.stop()
+
     return points,
 
 # # It does an iteration time step for all the agents with a Listen-Think-Walk manner
@@ -220,6 +259,10 @@ if __name__ == "__main__":
     # Code to iterate over all agents at each time step
     points = ax.scatter([], [])
     achieved_goals = []
+    J1_history = []
+    J2_history = []
+    blocked_history = []
+    
     colors = plt.cm.nipy_spectral(np.linspace(0, 1, num_agents)) 
     history = {agent.id: [agent.pos] for agent in A}
     ani = FuncAnimation(fig, update, frames=Total_time, interval=Total_time)
@@ -234,5 +277,38 @@ if __name__ == "__main__":
     plt.xlabel("Time")
     plt.ylabel("Number of achieved goals")
     plt.title("Goals achieved over time")
+    plt.grid()
+    plt.show()
+
+    #Metrics
+    plt.figure()
+    plt.plot(achieved_goals)
+    plt.xlabel("Time step")
+    plt.ylabel("Completed agents")
+    plt.title("Completed agents over time")
+    plt.grid()
+    plt.show()
+
+    plt.figure()
+    plt.plot(J1_history)
+    plt.xlabel("Time step")
+    plt.ylabel("J1")
+    plt.title("J1: Total Manhattan distance to assigned goals")
+    plt.grid()
+    plt.show()
+
+    plt.figure()
+    plt.plot(J2_history)
+    plt.xlabel("Time step")
+    plt.ylabel("J2")
+    plt.title("J2: Number of missing assigned goals")
+    plt.grid()
+    plt.show()
+
+    plt.figure()
+    plt.plot(blocked_history)
+    plt.xlabel("Time step")
+    plt.ylabel("Blocked agents")
+    plt.title("Blocked agents over time")
     plt.grid()
     plt.show()       
