@@ -9,6 +9,18 @@ from Agent import Agent
 import numpy as np
 import random
 
+#how far all agents are from their currently assigned goals
+def compute_J1():
+    total = 0
+    for agent in A:
+        total += agent.manhattan_distance(agent.get_actual_wp(), agent.get_goal())
+    return total
+
+#how many target positions are not currently assigned to any robo
+def compute_J2():
+    assigned_goals = set(agent.get_goal() for agent in A)
+    return len(Q) - len(assigned_goals)
+
 def update(frame):
     # Time step with all the actions 
     simulation_step()
@@ -62,6 +74,7 @@ def simulation_step():
                 continue
 
             agent.try_goal_swap(other)
+        
             processed_pairs.add(pair)
 
     # Think: Motion planning AFTafter final goal for this step is known
