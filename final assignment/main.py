@@ -9,6 +9,7 @@ from Agent import Agent
 import numpy as np
 import random
 import time
+import csv
 
 ani = None
 step_times = []
@@ -326,6 +327,30 @@ if __name__ == "__main__":
     print(f"Max blocked agents: {max_blocked}")        
 
 
+
+    with open("simulation_data.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+
+        # Header
+        writer.writerow([
+            "step",
+            "completed_agents",
+            "J1",
+            "J2",
+            "blocked_agents",
+            "step_time"
+        ])
+
+        # Data rows
+        for t in range(len(achieved_goals)):
+            writer.writerow([
+                t,
+                achieved_goals[t],
+                J1_history[t],
+                J2_history[t],
+                blocked_history[t],
+                step_times[t] if t < len(step_times) else None
+            ])
     
 
     # To show final positions and goals achieved
