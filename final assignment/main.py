@@ -35,44 +35,6 @@ def update(frame):
     return points,
 
 # # It does an iteration time step for all the agents with a Listen-Think-Walk manner
-# def simulation_step():
-#     # Listen (Add as neigbors all the agents within communication range)
-#     for agent in A:
-#         neighbors = []
-#         for neighbor in A:
-#             if(neighbor is not agent and agent.can_communicate(neighbor)):
-#                 neighbors.append(neighbor)
-#         agent.setNeighbors(neighbors = neighbors)
-
-#     # Gradient propagation
-#     for agent in A:
-#         agent.update_gradient_candidate(Q)        
-
-#     # Think (Reorganize goal and plan next waypoint)
-#     for agent in A:
-#         agent.goal_selector(A,Q)
-#         agent.motion_planner(x_min, x_max, y_min, y_max)
-
-#     # Local Task swapping
-#     # This calls Agent.try_goal_swap()
-#     processed_pairs = set()
-
-#     for agent in A:
-#         for other in agent.neighbors:
-#             pair = tuple(sorted((agent.id, other.id)))
-
-#             if pair in processed_pairs:
-#                 continue
-
-#             agent.try_goal_swap(other)
-
-#             processed_pairs.add(pair)        
-
-#     # Move 
-#     for agent in A:
-#         agent.move()
-#         history[agent.id].append(agent.get_pos())
-
 def simulation_step():
     # Listen (Add as neigbors all the agents within communication range)
     for agent in A:
@@ -88,9 +50,9 @@ def simulation_step():
 
     # Think: Goal selector
     for agent in A:
-        agent.goal_selector(A, Q)
+        agent.goal_selector(A, Q,True)
 
-    # Local task swapping BEFORE motion planning
+    # Local task swapping before motion planning
     processed_pairs = set()
     for agent in A:
         for other in agent.neighbors:
@@ -105,10 +67,19 @@ def simulation_step():
     for agent in A:
         agent.motion_planner(x_min, x_max, y_min, y_max)
 
-    # Move
+    # # Move
+    # for agent in A:
+    #     agent.move()
+    #     history[agent.id].append(agent.get_pos())
+
+    # Think: ALL agents decide simultaneously (no one moves yet)
     for agent in A:
-        agent.move()
-        history[agent.id].append(agent.get_pos())
+        agent.decide_move()
+
+    # Walk: ALL agents act on their pre-computed decision
+    for agent in A:
+        agent.commit_move(x_min, x_max, y_min, y_max)
+        history[agent.id].append(agent.get_pos())  
 
 
 
@@ -204,8 +175,13 @@ if __name__ == "__main__":
 
     # Agents
     A = [] # set of agents
+    #for a in range(num_agents):
+    #    A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1]))
     for a in range(num_agents):
-        A.append(Agent(id = a, comm_range = comm_range, posx=grid_pos[a,0], posy=grid_pos[a,1]))
+        A.append(Agent(id=a, comm_range=comm_range,
+                    posx=int(grid_pos[a, 0]),   # cast to plain Python int
+                    posy=int(grid_pos[a, 1])))  # cast to plain Python int
+
 
     # Targets
     Q = generate_H(n_points=num_agents, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)

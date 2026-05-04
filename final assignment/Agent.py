@@ -4,13 +4,17 @@ import random
 class Agent:
     def __init__(self, id, comm_range, posx=0, posy=0):
         self.id = id
-        self.pos = (posx, posy)
-        self.actual_wp = (posx, posy)
-        self.next_wp = (posx, posy)
+        # self.pos = (posx, posy)
+        # self.actual_wp = (posx, posy)
+        # self.next_wp = (posx, posy)
+        self.pos      = (float(posx), float(posy))  # always plain Python float
+        self.actual_wp = (int(posx),   int(posy))   # always plain Python int
+        self.next_wp   = (int(posx),   int(posy))   # always plain Python int        
         self.comm_range = comm_range
         self.goal = None
         self.neighbors = []
         self.validMovement_ = False
+        self.valid_movement = True 
         #Gradient
         self.candidate_goal = None
         self.hop = float("inf")
@@ -76,45 +80,40 @@ class Agent:
         return pos_a[1] > pos_b[1]
 
     # Movement planner
-    def is_at_waypoint(self, pos, wp, tol=1e-9):
+    def is_at_waypoint(self, pos, wp, tol=1e-3):
         return abs(pos[0] - wp[0]) < tol and abs(pos[1] - wp[1]) < tol
     
-    def motion_planner(self, x_min, x_max, y_min, y_max):
+    # def motion_planner(self, x_min, x_max, y_min, y_max):
         
-        # This is computed when an agent is at a waypoint
-        if self.is_at_waypoint(self.pos, self.next_wp):
-            pos_x, pos_y = self.pos
-            self.set_actual_wp(round(pos_x), round(pos_y))
+    #     # This is computed when an agent is at a waypoint
+    #     if self.is_at_waypoint(self.pos, self.next_wp):
+    #         pos_x, pos_y = self.pos
+    #         self.set_actual_wp(round(pos_x), round(pos_y))
 
-            # Possible actions inside the grid: north, east, south, west, wait
-            x, y = self.get_actual_wp()
-            candidates = [
-                (x + 1, y),  # east
-                (x - 1, y),  # west
-                (x, y + 1),  # north
-                (x, y - 1),  # south
-                (x, y),      # wait
-            ]
+    #         # Possible actions inside the grid: north, east, south, west, wait
+    #         x, y = self.get_actual_wp()
+    #         candidates = [
+    #             (x + 1, y),  # east
+    #             (x - 1, y),  # west
+    #             (x, y + 1),  # north
+    #             (x, y - 1),  # south
+    #             (x, y),      # wait
+    #         ]
 
-            # Grid boundary constraint.
-            valid_candidates = []
-            for px, py in candidates:
-                if x_min <= px <= x_max and y_min <= py <= y_max:
-                    valid_candidates.append((px, py))
+    #         # Grid boundary constraint.
+    #         valid_candidates = []
+    #         for px, py in candidates:
+    #             if x_min <= px <= x_max and y_min <= py <= y_max:
+    #                 valid_candidates.append((px, py))
 
-            # Greedy action
-            best_pos = min(
-                valid_candidates,
-                key=lambda p: self.manhattan_distance(p, self.goal)
-            )
+    #         # Greedy action
+    #         best_pos = min(
+    #             valid_candidates,
+    #             key=lambda p: self.manhattan_distance(p, self.goal)
+    #         )
 
-            self.next_wp = best_pos
+    #         self.next_wp = best_pos
 
-    #TODO: Issue, the robot has the target but on the way toward the target
-    #it might pass over one target, as the agent has the entire map it should
-    # be able to compute if it is more optime change the goal by the closest to itself 
-    
-    #TODO: plot the trayectory computed!!
     def move(self):
         # This is replicating the communication before movement
         valid_movement = True
@@ -154,96 +153,89 @@ class Agent:
         self.set_pos(x, y)
         self.validMovement_ = valid_movement
 
+    def motion_planner(self, x_min, x_max, y_min, y_max):
+
+        # Replan if: arrived at next_wp  OR  was blocked last tick
+        # This prevents the robot freezing when decide_move() blocks it
+        at_next = self.is_at_waypoint(self.pos, self.next_wp)
+        was_blocked = not self.valid_movement  # False if decide_move blocked us
+
+        if at_next or was_blocked:
+            pos_x, pos_y = self.pos
+            self.set_actual_wp(round(pos_x), round(pos_y))
+
+            # Possible actions: north, east, south, west, wait
+            x, y = self.get_actual_wp()
+            candidates = [
+                (x + 1, y),  # east
+                (x - 1, y),  # west
+                (x, y + 1),  # north
+                (x, y - 1),  # south
+                (x, y),      # wait
+            ]
+
+            # Grid boundary constraint
+            valid_candidates = [
+                (px, py) for px, py in candidates
+                if x_min <= px <= x_max and y_min <= py <= y_max
+            ]
+
+            # Greedy: pick step that minimises Manhattan distance to goal
+            self.next_wp = min(
+                valid_candidates,
+                key=lambda p: self.manhattan_distance(p, self.goal)
+            )        
+
 
     # Goal selector
     # 
     
-    def goal_selector(self, agents, Q):
-        if self.goal is None:
-            self.goal = random.choice(Q)
-            return self.goal
+    # def goal_selector(self, agents, Q):
+    #     if self.goal is None:
+    #         self.goal = random.choice(Q)
+    #         return self.goal
 
-        # Always define this first
-        neighbor_goals = [
-            other.goal
-            for other in agents
-            if other.id != self.id and self.can_communicate(other)
-        ]
+    #     # Always define this first
+    #     neighbor_goals = [
+    #         other.goal
+    #         for other in agents
+    #         if other.id != self.id and self.can_communicate(other)
+    #     ]
 
-        for other in agents:
-            if other.id == self.id:
-                continue
+    #     for other in agents:
+    #         if other.id == self.id:
+    #             continue
 
-            if not self.can_communicate(other):
-                continue
+    #         if not self.can_communicate(other):
+    #             continue
 
-            if self.goal == other.goal:
-                if self.get_pos() < other.get_pos():
+    #         if self.goal == other.goal:
+    #             if self.get_pos() < other.get_pos():
 
-                    if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
-                    #if self.candidate_goal is not None:
-                        self.goal = self.candidate_goal
-                    else:
-                        free_goals = [q for q in Q if q not in neighbor_goals]
+    #                 if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
+    #                 #if self.candidate_goal is not None:
+    #                     self.goal = self.candidate_goal
+    #                 else:
+    #                     free_goals = [q for q in Q if q not in neighbor_goals]
 
-                        if free_goals:
-                            self.goal = random.choice(free_goals)
-                        else:
-                            self.goal = random.choice(Q)
+    #                     if free_goals:
+    #                         self.goal = random.choice(free_goals)
+    #                     else:
+    #                         self.goal = random.choice(Q)
 
-        return self.goal    
+    #     return self.goal    
     
-    # def update_gradient_candidate(self, Q):
-    #     """
-    #     PAPER CONNECTION:
-    #     Gradient-based selector from Section III-B.
-
-    #     This approximates the hop-count propagation mechanism:
-    #     - If the agent is near an apparently unassigned goal, it becomes an anchor.
-    #     - Anchor publishes that goal with hop = 0.
-    #     - Otherwise, the agent copies the best candidate_goal from neighbors
-    #     with the smallest hop count.
-    #     """
-
-    #     # Goals currently visible among local neighbors
-    #     neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
-
-    #     # Check if there is a locally unassigned goal one grid step away
-    #     local_unassigned_goals = []
-
-    #     for q in Q:
-    #         if q not in neighbor_goals:
-    #             if self.manhattan_distance(self.get_actual_wp(), q) == 1:
-    #                 local_unassigned_goals.append(q)
-
-    #     # Anchor case
-    #     if local_unassigned_goals:
-    #         self.candidate_goal = random.choice(local_unassigned_goals)
-    #         self.hop = 0
-    #         return
-
-    #     # Common-agent case: receive best candidate from neighbors
-    #     best_neighbor = None
-    #     best_hop = float("inf")
-
-    #     for neighbor in self.neighbors:
-    #         if neighbor.candidate_goal is not None and neighbor.hop < best_hop:
-    #             best_neighbor = neighbor
-    #             best_hop = neighbor.hop
-
-    #     if best_neighbor is not None:
-    #         self.candidate_goal = best_neighbor.candidate_goal
-    #         self.hop = best_neighbor.hop + 1
-    #     else:
-    #         self.candidate_goal = None
-    #         self.hop = float("inf")
-
-
     def update_gradient_candidate(self, Q):
         """
-        Improved gradient-based selector.
+        PAPER CONNECTION:
+        Gradient-based selector from Section III-B.
 
-        Keeps candidate_goal persistent unless a better candidate is found.
+        This approximates the hop-count propagation mechanism:
+        - If the agent is near an apparently unassigned goal, it becomes an anchor.
+        - Anchor publishes that goal with hop = 0.
+        - Otherwise, the agent copies the best candidate_goal from neighbors
+        with the smallest hop count.
+        - Keeps candidate_goal persistent unless a better candidate is found.
         """
 
         neighbor_goals = [neighbor.get_goal() for neighbor in self.neighbors]
@@ -340,6 +332,243 @@ class Agent:
             return True
 
         return False    
+    
+    def decide_move(self):
+        # THINK phase: check neighbours using the current snapshot.
+        # Nobody has moved yet this tick, so actual_wp values are consistent.
+        self.valid_movement = True
+        for neighbor in self.neighbors:
+            neighbor_actual_wp = neighbor.get_actual_wp()
+            neighbor_next_wp   = neighbor.get_next_wp()
+
+            # Constraint A.1a: neighbour is sitting on our intended waypoint
+            if self.next_wp == neighbor_actual_wp:
+                self.valid_movement = False
+                break
+
+            # Constraint A.1b: neighbour with higher lex priority wants same waypoint
+            if self.next_wp == neighbor_next_wp:
+                if not self.lex_greater(self.actual_wp, neighbor_actual_wp):
+                    self.valid_movement = False
+                    break
+
+            # Constraint A.2: head-on edge collision
+            if self.next_wp == neighbor_actual_wp and self.actual_wp == neighbor_next_wp:
+                self.valid_movement = False
+                break
+
+    # def commit_move(self):
+    #     # WALK phase: execute the decision made in decide_move().
+    #     if self.valid_movement:
+    #         next_wp_x, next_wp_y   = self.next_wp
+    #         actual_wp_x, actual_wp_y = self.actual_wp
+    #         pos_x, pos_y           = self.pos
+    #         x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+    #         y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+    #         self.set_pos(x, y)
+    #     # if not valid, agent simply stays — no set_pos needed
+    # 
+
+    # def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
+    #     # WALK phase: execute the decision made in decide_move().
+    #     if self.valid_movement:
+    #         next_wp_x, next_wp_y     = self.next_wp
+    #         actual_wp_x, actual_wp_y = self.actual_wp
+    #         pos_x, pos_y             = self.pos
+
+    #         x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+    #         y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+
+    #         # Hard clamp: robot can never leave the grid regardless of
+    #         # any rounding error or stale waypoint computation above
+    #         x = max(x_min, min(x_max, x))
+    #         y = max(y_min, min(y_max, y))
+
+    #         self.set_pos(x, y)    
+
+    # def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
+    #     # WALK phase: execute the decision made in decide_move().
+    #     if self.valid_movement:
+    #         next_wp_x, next_wp_y     = self.next_wp
+    #         actual_wp_x, actual_wp_y = self.actual_wp
+    #         pos_x, pos_y             = self.pos
+
+    #         x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+    #         y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+
+    #         # Hard clamp: robot can never leave the grid
+    #         x_clamped = max(x_min, min(x_max, x))
+    #         y_clamped = max(y_min, min(y_max, y))
+
+    #         # If clamping changed the position, the robot hit a wall —
+    #         # reset both waypoints to the clamped position so motion_planner
+    #         # replans cleanly from here next tick instead of using stale deltas
+    #         if x_clamped != x or y_clamped != y:
+    #             self.set_actual_wp(round(x_clamped), round(y_clamped))
+    #             self.next_wp = (round(x_clamped), round(y_clamped))
+    #             self.valid_movement = False  # force replan next tick
+
+    #         self.set_pos(x_clamped, y_clamped)    
+
+
+
+    # def goal_selector(self, agents, Q,flag=False):
+        
+    #     # If the agent has no goal yet, assign one randomly from Q
+    #     # This only happens at initialization
+    #     if self.goal is None:
+    #         self.goal = random.choice(Q)
+    #         return self.goal
+
+    #     # Build the list of goals currently held by neighbours in comm range
+    #     # This is the local view of what is "taken" — not global knowledge
+    #     neighbor_goals = [
+    #         other.goal for other in agents
+    #         if other.id != self.id and self.can_communicate(other)
+    #     ]
+
+    #     # --- CONFLICT RESOLUTION (paper §III-B) ---
+    #     # Check if any neighbour holds the same goal as this agent
+    #     for other in agents:
+    #         if other.id == self.id:
+    #             continue
+
+    #         # Only interact with agents within communication range
+    #         if not self.can_communicate(other):
+    #             continue
+
+    #         # Conflict detected: both this agent and 'other' hold the same goal
+    #         if self.goal == other.goal:
+
+    #             # Tie-breaking: the agent with the lexicographically SMALLER
+    #             # position must change its goal (the other one keeps it)
+    #             # Paper §II-B: p1 ≻ p2 iff p1.x > p2.x, or p1.x==p2.x and p1.y > p2.y
+    #             if self.get_pos() < other.get_pos():
+
+    #                 # Gradient-based choice (paper §III-B.2):
+    #                 # Use the candidate_goal propagated by the hop-count wave,
+    #                 # as long as it is not already taken by a visible neighbour
+    #                 if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
+    #                     self.goal = self.candidate_goal
+
+    #                 else:
+    #                     # Random fallback (paper §III-B.1):
+    #                     # Pick any goal not currently held by a visible neighbour
+    #                     free_goals = [q for q in Q if q not in neighbor_goals]
+    #                     self.goal = random.choice(free_goals) if free_goals else random.choice(Q)
+
+    #     # --- IDLE AGENT CHECK (fixes the stranded robot problem) ---
+    #     # If this agent has already reached its goal, check whether any
+    #     # goal in Q is completely unclaimed by any agent in the swarm.
+    #     # This handles the case where an agent finishes early while
+    #     # some goal squares are left empty (J2 > 0).
+    #     # Note: this uses global agent list, which is acceptable since
+    #     # all agents share Q a priori (paper §II-C)
+    #     #if self.get_pos() == self.goal:
+    #     tol = 1e-3
+    #     px, py = self.get_pos()
+    #     gx, gy = self.goal
+    #     if abs(px - gx) < tol and abs(py - gy) < tol:
+    #         all_claimed = [other.goal for other in agents if other.id != self.id]
+    #         unclaimed = [q for q in Q if q not in all_claimed]
+
+    #         if unclaimed:
+    #             # Move toward the closest unclaimed goal (greedy assignment)
+    #             # Minimises the extra distance this agent needs to travel
+    #             self.goal = min(unclaimed,
+    #                             key=lambda q: self.manhattan_distance(self.get_pos(), q))
+
+    #     return self.goal 
+
+
+        
+    def goal_selector(self, agents, Q, flag=False):
+
+        # If the agent has no goal yet, assign one randomly from Q
+        if self.goal is None:
+            self.goal = random.choice(Q)
+            return self.goal
+
+        # Build the list of goals currently held by neighbours in comm range
+        neighbor_goals = [
+            other.goal for other in agents
+            if other.id != self.id and self.can_communicate(other)
+        ]
+
+        # --- CONFLICT RESOLUTION (paper §III-B) ---
+        for other in agents:
+            if other.id == self.id:
+                continue
+            if not self.can_communicate(other):
+                continue
+
+            if self.goal == other.goal:
+                if self.get_pos() < other.get_pos():
+
+                    old_goal = self.goal  # remember current goal
+
+                    if self.candidate_goal is not None and self.candidate_goal not in neighbor_goals:
+                        self.goal = self.candidate_goal
+                    else:
+                        free_goals = [q for q in Q if q not in neighbor_goals]
+                        self.goal = random.choice(free_goals) if free_goals else random.choice(Q)
+
+                    # Goal changed mid-movement → force immediate replan
+                    # so motion_planner doesn't keep heading to the old target
+                    if self.goal != old_goal:
+                        self.next_wp = self.actual_wp
+                        self.valid_movement = False
+
+        # --- IDLE AGENT CHECK ---
+        tol = 1e-3
+        px, py = self.get_pos()
+        gx, gy = self.goal
+        if abs(px - gx) < tol and abs(py - gy) < tol:
+            all_claimed = [other.goal for other in agents if other.id != self.id]
+            unclaimed = [q for q in Q if q not in all_claimed]
+
+            if unclaimed:
+                old_goal = self.goal
+                self.goal = min(unclaimed,
+                                key=lambda q: self.manhattan_distance(self.get_pos(), q))
+
+                # New goal assigned → force replan toward it
+                if self.goal != old_goal:
+                    self.next_wp = self.actual_wp
+                    self.valid_movement = False
+
+        return self.goal         
+
+
+    def commit_move(self, x_min=0, x_max=10, y_min=0, y_max=10):
+
+        if self.valid_movement:
+            next_wp_x, next_wp_y     = self.next_wp
+            actual_wp_x, actual_wp_y = self.actual_wp
+            pos_x, pos_y             = self.pos
+
+            x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+            y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+
+            # Hard clamp: robot can never leave the grid
+            x = max(x_min, min(x_max, x))
+            y = max(y_min, min(y_max, y))
+
+            # SNAP: if close enough to next_wp, lock exactly onto it
+            # This prevents robots stopping at 2.9999 or 3.0001 forever
+            if abs(x - next_wp_x) < 0.15 and abs(y - next_wp_y) < 0.15:
+                x = float(next_wp_x)
+                y = float(next_wp_y)
+
+            # If clamped against wall, reset waypoints for clean replan
+            raw_x = pos_x + 0.1 * (next_wp_x - actual_wp_x)
+            raw_y = pos_y + 0.1 * (next_wp_y - actual_wp_y)
+            if raw_x != x or raw_y != y:
+                self.set_actual_wp(round(x), round(y))
+                self.next_wp = (round(x), round(y))
+                self.valid_movement = False
+
+            self.set_pos(x, y)          
     
 
 if __name__ == "__main__":
